@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import random
 import shutil
@@ -733,7 +734,7 @@ def make_publication_time(
         )
     )
 
-    published =
+   published = datetime.now().isoformat()
         base_time + timedelta(
             minutes=offset_minutes
         )
