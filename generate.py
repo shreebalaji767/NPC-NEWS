@@ -735,9 +735,6 @@ def make_publication_time(
     )
 
    published = datetime.now().isoformat()
-        base_time + timedelta(
-            minutes=offset_minutes
-        )
 
     return published.isoformat(
         timespec="minutes"
