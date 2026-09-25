@@ -1,1548 +1,957 @@
 let allArticles = [];
 let allEvents = [];
 
-let activeCategory = "ALL";
+const homepage = document.getElementById("homepage");
+const incidentPage = document.getElementById("incidentPage");
+const newsGrid = document.getElementById("newsGrid");
+const incidentContent = document.getElementById("incidentContent");
+const backToNews = document.getElementById("backToNews");
 
-const $ = (selector) => document.querySelector(selector);
+
+// ============================================================
+// LOAD NEWS
+// ============================================================
+
+async function loadNews() {
+    try {
+        const response = await fetch("news.json?v=" + Date.now());
+
+        if (!response.ok) {
+            throw new Error("Unable to load news.json");
+        }
+
+        const data = await response.json();
+
+        // New format
+        if (Array.isArray(data)) {
+            allArticles = data;
+            allEvents = [];
+        } else {
+            allArticles = data.articles || [];
+            allEvents = data.events || [];
+        }
+
+        renderNews();
+
+        handleHash();
+
+    } catch (error) {
+        console.error(error);
+
+        if (newsGrid) {
+            newsGrid.innerHTML = `
+                <div class="error-box">
+                    <h2>NEWSROOM ERROR</h2>
+                    <p>Unable to load the latest news.</p>
+                    <p>Please check that <strong>news.json</strong> exists.</p>
+                </div>
+            `;
+        }
+    }
+}
+
+
+// ============================================================
+// RENDER NEWS
+// ============================================================
+
+function renderNews() {
+
+    if (!newsGrid) return;
+
+    if (!allArticles.length) {
+        newsGrid.innerHTML = `
+            <div class="empty-news">
+                <h2>No stories available.</h2>
+            </div>
+        `;
+
+        return;
+    }
+
+    newsGrid.innerHTML = allArticles
+        .slice(0, 50)
+        .map(article => createArticleCard(article))
+        .join("");
+
+    attachArticleEvents();
+}
+
+
+// ============================================================
+// ARTICLE CARD
+// ============================================================
+
+function createArticleCard(article) {
+
+    const category =
+        article.category ||
+        article.type ||
+        "NEWS";
+
+    const headline =
+        article.headline ||
+        article.title ||
+        "Untitled Story";
+
+    const summary =
+        article.summary ||
+        article.description ||
+        article.body ||
+        "";
+
+    const location =
+        article.location ||
+        article.world ||
+        "FICTIONAL WORLD";
+
+    const time =
+        article.published ||
+        article.time ||
+        "";
+
+    const eventId =
+        article.event_id ||
+        article.eventId ||
+        article.id;
+
+    return `
+        <article
+            class="news-card"
+            data-event-id="${escapeHTML(eventId)}"
+        >
+
+            <div class="article-category">
+                ${escapeHTML(category)}
+            </div>
+
+            <h2 class="article-headline">
+                ${escapeHTML(headline)}
+            </h2>
+
+            <div class="article-meta">
+                ${escapeHTML(location)}
+                ${time ? " • " + escapeHTML(time) : ""}
+            </div>
+
+            <p class="article-summary">
+                ${escapeHTML(summary)}
+            </p>
+
+            <button
+                class="read-more"
+                type="button"
+                data-event-id="${escapeHTML(eventId)}"
+            >
+                READ FULL INCIDENT →
+            </button>
+
+        </article>
+    `;
+}
+
+
+// ============================================================
+// ATTACH CLICK EVENTS
+// ============================================================
+
+function attachArticleEvents() {
+
+    const cards = document.querySelectorAll(".news-card");
+
+    cards.forEach(card => {
+
+        card.addEventListener("click", function(event) {
+
+            // Prevent double triggering when button itself is clicked
+            if (event.target.closest(".read-more")) {
+                return;
+            }
+
+            const eventId = card.dataset.eventId;
+
+            if (eventId) {
+                openIncident(eventId);
+            }
+
+        });
+    });
+
+
+    const buttons = document.querySelectorAll(".read-more");
+
+    buttons.forEach(button => {
+
+        button.addEventListener("click", function(event) {
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const eventId = button.dataset.eventId;
+
+            if (eventId) {
+                openIncident(eventId);
+            }
+
+        });
+
+    });
+}
+
+
+// ============================================================
+// OPEN INCIDENT
+// ============================================================
+
+function openIncident(eventId) {
+
+    console.log("Opening incident:", eventId);
+
+    let eventData = allEvents.find(
+        event => event.id === eventId
+    );
+
+    /*
+        If events are not separately stored,
+        find information from the articles.
+    */
+
+    if (!eventData) {
+
+        const relatedArticles = allArticles.filter(
+            article =>
+                (article.event_id || article.eventId || article.id) === eventId
+        );
+
+        if (relatedArticles.length) {
+
+            const first = relatedArticles[0];
+
+            eventData = {
+                id: eventId,
+                world: first.world || "UNKNOWN WORLD",
+                location: first.location || "UNKNOWN LOCATION",
+                characters: first.characters || [],
+                winner: first.winner || "UNKNOWN",
+                duration: first.duration || "Unknown",
+                damage: first.damage || {},
+                consequences: first.consequences || {},
+                npc_quotes: first.npc_quotes || [],
+                timeline: first.timeline || [],
+                official_response: first.official_response || [],
+                aftermath: first.aftermath || {}
+            };
+        }
+    }
+
+
+    if (!eventData) {
+
+        alert(
+            "This article does not have an incident attached to it."
+        );
+
+        return;
+    }
+
+
+    /*
+        Put the incident ID into the URL.
+        This allows refreshing/back button/direct links.
+    */
+
+    window.location.hash =
+        "incident/" + encodeURIComponent(eventId);
+
+
+    showIncident(eventData);
+}
+
+
+// ============================================================
+// SHOW INCIDENT
+// ============================================================
+
+function showIncident(eventData) {
+
+    homepage.classList.add("hidden");
+    incidentPage.classList.remove("hidden");
+
+    document.body.classList.add("viewing-incident");
+
+    incidentContent.innerHTML = buildIncident(eventData);
+
+    window.scrollTo({
+        top: 0,
+        behavior: "instant"
+    });
+}
+
+
+// ============================================================
+// BUILD COMPLETE INCIDENT
+// ============================================================
+
+function buildIncident(event) {
+
+    const characters = event.characters || [];
+
+    const damage = event.damage || {};
+
+    const consequences = event.consequences || {};
+
+    const quotes = event.npc_quotes || [];
+
+    const timeline = event.timeline || [];
+
+    const officialResponse =
+        event.official_response || [];
+
+    const aftermath =
+        event.aftermath || {};
+
+
+    return `
+
+        <div class="incident-kicker">
+            ${escapeHTML(event.world || "FICTIONAL WORLD")}
+        </div>
+
+
+        <h1 class="incident-title">
+            ${escapeHTML(event.location || "Unknown Location")}
+        </h1>
+
+
+        <div class="incident-subtitle">
+            COMPLETE INCIDENT REPORT
+        </div>
+
+
+        <div class="incident-rule"></div>
+
+
+        <!-- INCIDENT SUMMARY -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                INCIDENT SUMMARY
+            </div>
+
+            <div class="incident-summary-box">
+
+                <div>
+                    <span>LOCATION</span>
+                    <strong>
+                        ${escapeHTML(event.location || "Unknown")}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>WORLD</span>
+                    <strong>
+                        ${escapeHTML(event.world || "Unknown")}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>DURATION</span>
+                    <strong>
+                        ${escapeHTML(event.duration || "Unknown")}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>WINNER</span>
+                    <strong>
+                        ${escapeHTML(event.winner || "Unknown")}
+                    </strong>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- PEOPLE INVOLVED -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                THE PEOPLE INVOLVED
+            </div>
+
+            <div class="fighters">
+
+                ${
+                    characters.map((character, index) => `
+                        <div class="fighter">
+
+                            <span class="fighter-number">
+                                ${index + 1}
+                            </span>
+
+                            <strong>
+                                ${escapeHTML(character)}
+                            </strong>
+
+                        </div>
+                    `).join("")
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- TIMELINE -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                INCIDENT TIMELINE
+            </div>
+
+            ${
+                timeline.length
+                ?
+                `
+                    <div class="timeline">
+
+                        ${
+                            timeline.map(item => `
+
+                                <div class="timeline-item">
+
+                                    <div class="timeline-time">
+                                        ${escapeHTML(item.time || "")}
+                                    </div>
+
+                                    <div class="timeline-content">
+
+                                        <h3>
+                                            ${escapeHTML(item.title || "")}
+                                        </h3>
+
+                                        <p>
+                                            ${escapeHTML(item.description || "")}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            `).join("")
+                        }
+
+                    </div>
+                `
+                :
+                `
+                    <p class="muted">
+                        A detailed incident timeline is being compiled.
+                    </p>
+                `
+            }
+
+        </section>
+
+
+        <!-- BATTLE -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                THE BATTLE
+            </div>
+
+            <p class="large-copy">
+
+                ${
+                    characters.length >= 2
+                    ?
+                    `
+                    ${escapeHTML(characters[0])}
+                    confronted
+                    ${escapeHTML(characters[1])}
+                    in ${escapeHTML(event.location || "the affected area")}.
+                    The confrontation lasted
+                    ${escapeHTML(event.duration || "an unknown period")}.
+                    `
+                    :
+                    `
+                    A major confrontation was reported in
+                    ${escapeHTML(event.location || "the affected area")}.
+                    `
+                }
+
+            </p>
+
+            <p class="large-copy">
+
+                The confrontation eventually ended with
+                <strong>
+                    ${escapeHTML(event.winner || "no confirmed winner")}
+                </strong>
+                reported as the victor.
+
+            </p>
+
+        </section>
+
+
+        <!-- DAMAGE -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                DAMAGE REPORT
+            </div>
+
+            <div class="damage-grid">
+
+                ${statBox("BUILDINGS", damage.buildings)}
+                ${statBox("ROADS", damage.roads)}
+                ${statBox("VEHICLES", damage.vehicles)}
+                ${statBox("BUSINESSES", damage.businesses)}
+                ${statBox("NPCs AFFECTED", damage.npc_affected)}
+                ${statBox("INJURIES", damage.injuries)}
+                ${statBox("MISSING", damage.missing)}
+                ${statBox("DISPLACED", damage.displaced)}
+
+            </div>
+
+        </section>
+
+
+        <!-- NPC LIFE -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                HOW NPC LIFE WAS AFFECTED
+            </div>
+
+            <div class="consequence-list">
+
+                ${
+                    consequences.transport_routes !== undefined
+                    ?
+                    `
+                    <div>
+                        <strong>
+                            ${escapeHTML(consequences.transport_routes)}
+                        </strong>
+                        transport routes affected
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    consequences.schools_closed !== undefined
+                    ?
+                    `
+                    <div>
+                        <strong>
+                            ${escapeHTML(consequences.schools_closed)}
+                        </strong>
+                        schools closed
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    consequences.hospitals_affected !== undefined
+                    ?
+                    `
+                    <div>
+                        <strong>
+                            ${escapeHTML(consequences.hospitals_affected)}
+                        </strong>
+                        hospitals affected
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    consequences.utilities
+                    ?
+                    `
+                    <div>
+                        <strong>UTILITIES</strong>
+                        ${escapeHTML(consequences.utilities)}
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    consequences.economic_loss !== undefined
+                    ?
+                    `
+                    <div>
+                        <strong>
+                            ${formatMoney(consequences.economic_loss)}
+                        </strong>
+                        estimated economic impact
+                    </div>
+                    `
+                    : ""
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- NPC VOICES -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                VOICES FROM THE GROUND
+            </div>
+
+            <div class="quote-list">
+
+                ${
+                    quotes.length
+                    ?
+                    quotes.map(quote => `
+                        <blockquote>
+                            “${escapeHTML(quote)}”
+                        </blockquote>
+                    `).join("")
+                    :
+                    `
+                    <p class="muted">
+                        No resident statements have been published.
+                    </p>
+                    `
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- OFFICIAL RESPONSE -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                OFFICIAL RESPONSE
+            </div>
+
+            ${
+                officialResponse.length
+                ?
+                `
+                <ul class="official-list">
+
+                    ${
+                        officialResponse.map(item => `
+                            <li>
+                                ${escapeHTML(item)}
+                            </li>
+                        `).join("")
+                    }
+
+                </ul>
+                `
+                :
+                `
+                <p class="muted">
+                    Officials have not yet released a complete response.
+                </p>
+                `
+            }
+
+        </section>
+
+
+        <!-- AFTERMATH -->
+
+        <section class="incident-section">
+
+            <div class="section-label">
+                WHAT HAPPENS NEXT
+            </div>
+
+            <div class="aftermath">
+
+                ${
+                    aftermath.immediate
+                    ?
+                    `
+                    <div>
+                        <h3>IMMEDIATE</h3>
+                        <p>
+                            ${escapeHTML(aftermath.immediate)}
+                        </p>
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    aftermath.short_term
+                    ?
+                    `
+                    <div>
+                        <h3>SHORT TERM</h3>
+                        <p>
+                            ${escapeHTML(aftermath.short_term)}
+                        </p>
+                    </div>
+                    `
+                    : ""
+                }
+
+
+                ${
+                    aftermath.long_term
+                    ?
+                    `
+                    <div>
+                        <h3>LONG TERM</h3>
+                        <p>
+                            ${escapeHTML(aftermath.long_term)}
+                        </p>
+                    </div>
+                    `
+                    : ""
+                }
+
+            </div>
+
+        </section>
+
+
+        <div class="incident-end">
+
+            <strong>
+                NPC NEWS
+            </strong>
+
+            <span>
+                The heroes get the headlines.
+                The NPCs get the consequences.
+            </span>
+
+        </div>
+
+    `;
+}
+
+
+// ============================================================
+// STAT BOX
+// ============================================================
+
+function statBox(label, value) {
+
+    if (
+        value === undefined ||
+        value === null
+    ) {
+        return "";
+    }
+
+    return `
+
+        <div class="damage-box">
+
+            <span>
+                ${escapeHTML(label)}
+            </span>
+
+            <strong>
+                ${formatNumber(value)}
+            </strong>
+
+        </div>
+
+    `;
+}
+
+
+// ============================================================
+// BACK BUTTON
+// ============================================================
+
+if (backToNews) {
+
+    backToNews.addEventListener("click", function() {
+
+        window.location.hash = "";
+
+        incidentPage.classList.add("hidden");
+        homepage.classList.remove("hidden");
+
+        document.body.classList.remove(
+            "viewing-incident"
+        );
+
+        window.scrollTo({
+            top: 0,
+            behavior: "instant"
+        });
+
+    });
+
+}
+
+
+// ============================================================
+// HASH / DIRECT LINK
+// ============================================================
+
+function handleHash() {
+
+    const hash = window.location.hash;
+
+    if (!hash.startsWith("#incident/")) {
+
+        incidentPage.classList.add("hidden");
+        homepage.classList.remove("hidden");
+
+        return;
+    }
+
+
+    const eventId =
+        decodeURIComponent(
+            hash.replace("#incident/", "")
+        );
+
+
+    let eventData =
+        allEvents.find(
+            event => event.id === eventId
+        );
+
+
+    if (!eventData) {
+
+        const article =
+            allArticles.find(
+                article =>
+                    (
+                        article.event_id ||
+                        article.eventId ||
+                        article.id
+                    ) === eventId
+            );
+
+        if (article) {
+
+            eventData = {
+
+                id: eventId,
+
+                world: article.world,
+
+                location: article.location,
+
+                characters: article.characters,
+
+                winner: article.winner,
+
+                duration: article.duration,
+
+                damage: article.damage,
+
+                consequences: article.consequences,
+
+                npc_quotes: article.npc_quotes,
+
+                timeline: article.timeline,
+
+                official_response:
+                    article.official_response,
+
+                aftermath:
+                    article.aftermath
+            };
+
+        }
+
+    }
+
+
+    if (eventData) {
+        showIncident(eventData);
+    }
+
+}
+
+
+// Browser back/forward
+
+window.addEventListener(
+    "hashchange",
+    handleHash
+);
+
+
+// ============================================================
+// UTILITIES
+// ============================================================
+
+function escapeHTML(value) {
+
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 
 function formatNumber(value) {
 
-    return Number(value || 0).toLocaleString();
+    const number = Number(value);
 
-}
-
-
-function escapeHTML(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-}
-
-
-/* =========================================
-   LOAD DATA
-========================================= */
-
-async function loadNews() {
-
-    try {
-
-        const response =
-            await fetch("news.json?cache=" + Date.now());
-
-        if (!response.ok) {
-            throw new Error("news.json could not be loaded");
-        }
-
-        const data =
-            await response.json();
-
-        allArticles =
-            data.articles || [];
-
-        /*
-            events.json is not published separately,
-            so we reconstruct the incident information
-            from article data where possible.
-        */
-
-        updateStatistics(data);
-
-        renderHomepage();
-
-        checkForIncident();
-
+    if (Number.isNaN(number)) {
+        return escapeHTML(value);
     }
 
-    catch (error) {
+    return number.toLocaleString("en-IN");
+}
 
-        console.error(error);
 
-        document.body.innerHTML = `
-            <div style="
-                max-width:800px;
-                margin:80px auto;
-                padding:30px;
-                font-family:Arial;
-            ">
+function formatMoney(value) {
 
-                <h1>NEWSROOM FAILURE</h1>
+    const number = Number(value);
 
-                <p>
-                    NPC News cannot load the fictional news database.
-                </p>
-
-                <p>
-                    The NPCs have apparently broken the news server.
-                </p>
-
-                <hr>
-
-                <small>
-                    ${escapeHTML(error.message)}
-                </small>
-
-            </div>
-        `;
-
+    if (Number.isNaN(number)) {
+        return escapeHTML(value);
     }
 
+    return "₹" + number.toLocaleString("en-IN");
 }
 
 
-/* =========================================
-   STATISTICS
-========================================= */
-
-function updateStatistics(data) {
-
-    $("#articleCount").textContent =
-        formatNumber(data.articles.length);
-
-    $("#eventCount").textContent =
-        formatNumber(data.site.event_count);
-
-    /*
-        Estimate total affected NPCs.
-    */
-
-    $("#npcCount").textContent =
-        formatNumber(
-            data.site.event_count * 10000
-        );
-
-}
-
-
-/* =========================================
-   SHOW / HIDE PAGES
-========================================= */
-
-function showHomepage() {
-
-    $("#homepage").style.display = "block";
-
-    $("#incidentPage").style.display = "none";
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-}
-
-
-function showIncident() {
-
-    $("#homepage").style.display = "none";
-
-    $("#incidentPage").style.display = "block";
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-}
-
-
-/* =========================================
-   GET EVENT ARTICLES
-========================================= */
-
-function getEventArticles(eventId) {
-
-    return allArticles.filter(
-        article =>
-            article.event_id === eventId
-    );
-
-}
-
-
-/* =========================================
-   FIND INCIDENT
-========================================= */
-
-function openIncident(eventId, selectedArticleId = null) {
-
-    const articles =
-        getEventArticles(eventId);
-
-    if (!articles.length) {
-        return;
-    }
-
-    const selected =
-        articles.find(
-            article =>
-                article.id === selectedArticleId
-        ) || articles[0];
-
-    renderIncident(
-        articles,
-        selected
-    );
-
-    showIncident();
-
-    /*
-        Add the event ID to browser URL.
-
-        Example:
-
-        npc-news.onrender.com/#incident/central-city-solar-knight
-    */
-
-    history.pushState(
-        {
-            incident: eventId
-        },
-        "",
-        "#incident/" + encodeURIComponent(eventId)
-    );
-
-}
-
-
-/* =========================================
-   RENDER FULL INCIDENT
-========================================= */
-
-function renderIncident(
-    articles,
-    selected
-) {
-
-    const first =
-        articles[0];
-
-
-    /*
-        HEADER
-    */
-
-    $("#incidentCategory").textContent =
-        `${selected.category} • ${selected.type}`;
-
-
-    $("#incidentWorld").textContent =
-        `${first.world} • ${first.location}`;
-
-
-    $("#incidentHeadline").textContent =
-        selected.headline;
-
-
-    $("#incidentSummary").textContent =
-        selected.summary;
-
-
-    $("#incidentMeta").textContent =
-        `${selected.reporter} • ${selected.published}`;
-
-
-    /*
-        OVERVIEW
-    */
-
-    $("#incidentOverview").innerHTML = `
-
-        <p>
-            ${escapeHTML(selected.body)}
-        </p>
-
-        <p>
-            The incident occurred in
-            <strong>
-                ${escapeHTML(first.location)}
-            </strong>,
-            within the
-            <strong>
-                ${escapeHTML(first.world)}
-            </strong>.
-        </p>
-
-        <p>
-            NPC News has combined reports from the battle,
-            emergency services, transport authorities,
-            businesses, residents and local officials to
-            reconstruct the complete incident.
-        </p>
-
-    `;
-
-
-    /*
-        CHARACTERS
-    */
-
-    $("#incidentCharacters").innerHTML = `
-
-        <div class="character-card">
-
-            <small>
-                PARTICIPANT
-            </small>
-
-            <h3>
-                ${escapeHTML(first.characters[0])}
-            </h3>
-
-            <p>
-                ${first.winner === first.characters[0]
-                    ? "Declared winner"
-                    : "Participant"}
-            </p>
-
-        </div>
-
-
-        <div class="character-card">
-
-            <small>
-                PARTICIPANT
-            </small>
-
-            <h3>
-                ${escapeHTML(first.characters[1])}
-            </h3>
-
-            <p>
-                ${first.winner === first.characters[1]
-                    ? "Declared winner"
-                    : "Participant"}
-            </p>
-
-        </div>
-
-    `;
-
-
-    /*
-        TIMELINE
-    */
-
-    renderTimeline(
-        first,
-        articles
-    );
-
-
-    /*
-        BATTLE
-    */
-
-    const battleArticle =
-        articles.find(
-            article =>
-                article.category === "BATTLE"
-        );
-
-
-    $("#incidentBattle").innerHTML = `
-
-        <p>
-            ${escapeHTML(
-                battleArticle
-                    ? battleArticle.body
-                    : selected.body
-            )}
-        </p>
-
-        <p>
-            The confrontation lasted approximately
-            <strong>
-                ${escapeHTML(first.duration)}
-            </strong>.
-        </p>
-
-        <p>
-            The declared winner was
-            <strong>
-                ${escapeHTML(first.winner)}
-            </strong>.
-        </p>
-
-    `;
-
-
-    /*
-        DAMAGE
-    */
-
-    renderDamage(first);
-
-
-    /*
-        NPC IMPACT
-    */
-
-    renderNPCImpact(
-        first,
-        articles
-    );
-
-
-    /*
-        QUOTES
-    */
-
-    renderQuotes(first);
-
-
-    /*
-        AFTERMATH
-    */
-
-    renderAftermath(
-        first,
-        articles
-    );
-
-
-    /*
-        FACTS
-    */
-
-    renderFacts(first);
-
-
-    /*
-        WINNER
-    */
-
-    $("#incidentWinner").innerHTML = `
-
-        <div class="winner-name">
-            🏆
-            ${escapeHTML(first.winner)}
-        </div>
-
-        <div class="winner-duration">
-            Battle duration:
-            ${escapeHTML(first.duration)}
-        </div>
-
-    `;
-
-
-    /*
-        RELATED STORIES
-    */
-
-    renderRelated(
-        articles,
-        selected
-    );
-
-}
-
-
-/* =========================================
-   TIMELINE
-========================================= */
-
-function renderTimeline(
-    event,
-    articles
-) {
-
-    const timeline = [
-
-        {
-            time: "00:00",
-            title: "INCIDENT BEGINS",
-            text:
-                `The confrontation begins in ${event.location}.`
-        },
-
-        {
-            time: "00:03",
-            title: "FIRST IMPACT",
-            text:
-                "Residents report explosions, structural damage and emergency alerts."
-        },
-
-        {
-            time: "MID-FIGHT",
-            title: "BATTLE SPREADS",
-            text:
-                "The confrontation moves through the surrounding area."
-        },
-
-        {
-            time: event.duration,
-            title: "BATTLE ENDS",
-            text:
-                `${event.winner} is declared the winner.`
-        },
-
-        {
-            time: "+30 MIN",
-            title: "EMERGENCY RESPONSE",
-            text:
-                "Emergency crews enter the affected area."
-        },
-
-        {
-            time: "+2 HOURS",
-            title: "DAMAGE ASSESSMENT",
-            text:
-                "Officials begin assessing buildings, roads and public infrastructure."
-        },
-
-        {
-            time: "+6 HOURS",
-            title: "DAILY LIFE DISRUPTED",
-            text:
-                "Residents begin dealing with transport, work, housing and business problems."
-        },
-
-        {
-            time: "+1 DAY",
-            title: "RECOVERY BEGINS",
-            text:
-                "Repair and reconstruction operations begin."
-        }
-
-    ];
-
-
-    $("#incidentTimeline").innerHTML =
-        timeline.map(item => `
-
-            <div class="timeline-item">
-
-                <div class="timeline-time">
-                    ${escapeHTML(item.time)}
-                </div>
-
-                <div class="timeline-dot"></div>
-
-                <div class="timeline-content">
-
-                    <h3>
-                        ${escapeHTML(item.title)}
-                    </h3>
-
-                    <p>
-                        ${escapeHTML(item.text)}
-                    </p>
-
-                </div>
-
-            </div>
-
-        `).join("");
-
-}
-
-
-/* =========================================
-   DAMAGE
-========================================= */
-
-function renderDamage(event) {
-
-    const damage =
-        event.damage || {};
-
-    const items = [
-
-        ["BUILDINGS", damage.buildings],
-        ["ROADS", damage.roads],
-        ["VEHICLES", damage.vehicles],
-        ["BUSINESSES", damage.businesses],
-        ["NPCs AFFECTED", damage.npc_affected],
-        ["INJURIES", damage.injuries],
-        ["MISSING", damage.missing],
-        ["DISPLACED", damage.displaced]
-
-    ];
-
-
-    $("#damageGrid").innerHTML =
-        items.map(item => `
-
-            <div class="damage-card">
-
-                <strong>
-                    ${formatNumber(item[1])}
-                </strong>
-
-                <span>
-                    ${escapeHTML(item[0])}
-                </span>
-
-            </div>
-
-        `).join("");
-
-}
-
-
-/* =========================================
-   NPC IMPACT
-========================================= */
-
-function renderNPCImpact(
-    event,
-    articles
-) {
-
-    const consequences =
-        event.consequences || {};
-
-
-    const impacts = [
-
-        [
-            "TRANSPORT",
-            `${formatNumber(
-                consequences.transport_routes
-            )} routes affected or suspended.`
-        ],
-
-        [
-            "EDUCATION",
-            `${formatNumber(
-                consequences.schools_closed
-            )} schools affected.`
-        ],
-
-        [
-            "HEALTH",
-            `${formatNumber(
-                consequences.hospitals_affected
-            )} hospitals affected.`
-        ],
-
-        [
-            "UTILITIES",
-            consequences.utilities ||
-            "Utility inspections continue."
-        ],
-
-        [
-            "BUSINESS",
-            `${formatNumber(
-                event.damage.businesses
-            )} businesses affected.`
-        ],
-
-        [
-            "HOUSING",
-            `${formatNumber(
-                event.damage.displaced
-            )} residents displaced.`
-        ],
-
-        [
-            "EMPLOYMENT",
-            "Workers face disrupted routes and temporary workplace closures."
-        ],
-
-        [
-            "FOOD",
-            "Deliveries and supply routes are affected."
-        ]
-
-    ];
-
-
-    $("#npcImpact").innerHTML =
-        impacts.map(item => `
-
-            <div class="impact-card">
-
-                <h3>
-                    ${escapeHTML(item[0])}
-                </h3>
-
-                <p>
-                    ${escapeHTML(item[1])}
-                </p>
-
-            </div>
-
-        `).join("");
-
-}
-
-
-/* =========================================
-   NPC QUOTES
-========================================= */
-
-function renderQuotes(event) {
-
-    const quotes =
-        event.npc_quotes || [];
-
-
-    $("#npcQuotes").innerHTML =
-        quotes.map(quote => `
-
-            <blockquote>
-
-                "${escapeHTML(quote)}"
-
-                <cite>
-                    — Local resident
-                </cite>
-
-            </blockquote>
-
-        `).join("");
-
-}
-
-
-/* =========================================
-   AFTERMATH
-========================================= */
-
-function renderAftermath(
-    event,
-    articles
-) {
-
-    const reconstruction =
-        articles.find(
-            article =>
-                article.category === "RECONSTRUCTION"
-        );
-
-
-    const longTerm =
-        articles.find(
-            article =>
-                article.category === "ANALYSIS"
-        );
-
-
-    $("#incidentAftermath").innerHTML = `
-
-        <p>
-            ${escapeHTML(
-                reconstruction
-                    ? reconstruction.body
-                    : "Reconstruction crews are assessing the area."
-            )}
-        </p>
-
-        <p>
-            ${escapeHTML(
-                longTerm
-                    ? longTerm.body
-                    : "The long-term consequences remain under assessment."
-            )}
-        </p>
-
-        <div class="aftermath-warning">
-
-            THE BATTLE IS OVER.
-
-            <br>
-
-            THE INCIDENT IS NOT.
-
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================
-   FACTS
-========================================= */
-
-function renderFacts(event) {
-
-    $("#incidentFacts").innerHTML = `
-
-        <div class="fact">
-            <span>WORLD</span>
-            <strong>
-                ${escapeHTML(event.world)}
-            </strong>
-        </div>
-
-        <div class="fact">
-            <span>LOCATION</span>
-            <strong>
-                ${escapeHTML(event.location)}
-            </strong>
-        </div>
-
-        <div class="fact">
-            <span>DURATION</span>
-            <strong>
-                ${escapeHTML(event.duration)}
-            </strong>
-        </div>
-
-        <div class="fact">
-            <span>WINNER</span>
-            <strong>
-                ${escapeHTML(event.winner)}
-            </strong>
-        </div>
-
-        <div class="fact">
-            <span>NPCs AFFECTED</span>
-            <strong>
-                ${formatNumber(
-                    event.damage.npc_affected
-                )}
-            </strong>
-        </div>
-
-    `;
-
-}
-
-
-/* =========================================
-   RELATED STORIES
-========================================= */
-
-function renderRelated(
-    articles,
-    selected
-) {
-
-    const related =
-        articles
-            .filter(
-                article =>
-                    article.id !== selected.id
-            )
-            .slice(0, 12);
-
-
-    $("#relatedArticles").innerHTML =
-        related.map(article => `
-
-            <article
-                class="related-card"
-                data-event-id="${escapeHTML(article.event_id)}"
-                data-article-id="${escapeHTML(article.id)}"
-            >
-
-                <small>
-                    ${escapeHTML(article.category)}
-                </small>
-
-                <h3>
-                    ${escapeHTML(article.headline)}
-                </h3>
-
-                <p>
-                    ${escapeHTML(article.summary)}
-                </p>
-
-            </article>
-
-        `).join("");
-
-
-    document
-        .querySelectorAll(".related-card")
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    openIncident(
-                        card.dataset.eventId,
-                        card.dataset.articleId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================
-   RANDOM LEAD
-========================================= */
-
-function getRandomLead() {
-
-    const breaking =
-        allArticles.filter(
-            article =>
-                article.priority === "URGENT"
-        );
-
-
-    if (breaking.length) {
-
-        return breaking[
-            Math.floor(
-                Math.random() *
-                breaking.length
-            )
-        ];
-
-    }
-
-
-    return allArticles[
-        Math.floor(
-            Math.random() *
-            allArticles.length
-        )
-    ];
-
-}
-
-
-function renderLead() {
-
-    const article =
-        getRandomLead();
-
-    if (!article) {
-        return;
-    }
-
-
-    $("#leadCategory").textContent =
-        `${article.category} • ${article.type}`;
-
-
-    $("#leadHeadline").textContent =
-        article.headline;
-
-
-    $("#leadSummary").textContent =
-        article.summary;
-
-
-    $("#leadMeta").textContent =
-        `${article.world} • ${article.location} • ${article.reporter}`;
-
-
-    $("#leadBody").textContent =
-        article.body;
-
-
-    /*
-        IMPORTANT:
-
-        The lead article is clickable.
-    */
-
-    document
-        .querySelector(".lead-story")
-        .onclick = () => {
-
-            openIncident(
-                article.event_id,
-                article.id
-            );
-
-        };
-
-}
-
-
-/* =========================================
-   LATEST
-========================================= */
-
-function renderLatest() {
-
-    const container =
-        $("#latestNews");
-
-
-    const stories =
-        [...allArticles]
-            .sort(
-                () => Math.random() - 0.5
-            )
-            .slice(0, 8);
-
-
-    container.innerHTML =
-        stories.map(article => `
-
-            <article
-                class="latest-item clickable"
-                data-event-id="${escapeHTML(article.event_id)}"
-                data-article-id="${escapeHTML(article.id)}"
-            >
-
-                <div class="time">
-                    ${escapeHTML(article.category)}
-                </div>
-
-                <h3>
-                    ${escapeHTML(article.headline)}
-                </h3>
-
-                <small>
-                    ${escapeHTML(article.world)}
-                    •
-                    ${escapeHTML(article.location)}
-                </small>
-
-            </article>
-
-        `).join("");
-
-
-    document
-        .querySelectorAll(".latest-item")
-        .forEach(item => {
-
-            item.addEventListener(
-                "click",
-                () => {
-
-                    openIncident(
-                        item.dataset.eventId,
-                        item.dataset.articleId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================
-   NEWS GRID
-========================================= */
-
-function renderNewsGrid() {
-
-    const container =
-        $("#newsGrid");
-
-
-    let articles =
-        [...allArticles];
-
-
-    if (
-        activeCategory !== "ALL" &&
-        activeCategory !== "WORLDS"
-    ) {
-
-        articles =
-            articles.filter(
-                article =>
-                    article.category ===
-                    activeCategory
-            );
-
-    }
-
-
-    articles =
-        articles
-            .sort(
-                () => Math.random() - 0.5
-            )
-            .slice(0, 24);
-
-
-    container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="news-card clickable"
-                data-event-id="${escapeHTML(article.event_id)}"
-                data-article-id="${escapeHTML(article.id)}"
-            >
-
-                <div class="category">
-                    ${escapeHTML(article.category)}
-                </div>
-
-                <h3>
-                    ${escapeHTML(article.headline)}
-                </h3>
-
-                <p>
-                    ${escapeHTML(article.summary)}
-                </p>
-
-                <div class="meta">
-                    ${escapeHTML(article.world)}
-                    •
-                    ${escapeHTML(article.location)}
-                </div>
-
-                <div class="read-more">
-                    READ FULL INCIDENT →
-                </div>
-
-            </article>
-
-        `).join("");
-
-
-    document
-        .querySelectorAll(".news-card")
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    openIncident(
-                        card.dataset.eventId,
-                        card.dataset.articleId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================
-   SMALL SECTIONS
-========================================= */
-
-function renderSmallSection(
-    selector,
-    categories
-) {
-
-    const container =
-        $(selector);
-
-
-    const articles =
-        allArticles
-            .filter(
-                article =>
-                    categories.includes(
-                        article.category
-                    )
-            )
-            .sort(
-                () => Math.random() - 0.5
-            )
-            .slice(0, 5);
-
-
-    container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="small-story clickable"
-                data-event-id="${escapeHTML(article.event_id)}"
-                data-article-id="${escapeHTML(article.id)}"
-            >
-
-                <small>
-                    ${escapeHTML(article.type)}
-                </small>
-
-                <h3>
-                    ${escapeHTML(article.headline)}
-                </h3>
-
-                <p>
-                    ${escapeHTML(article.summary)}
-                </p>
-
-            </article>
-
-        `).join("");
-
-
-    container
-        .querySelectorAll(".small-story")
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    openIncident(
-                        card.dataset.eventId,
-                        card.dataset.articleId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================
-   WORLD NEWS
-========================================= */
-
-function renderWorldNews() {
-
-    const container =
-        $("#worldNews");
-
-
-    const worlds = {};
-
-
-    allArticles.forEach(article => {
-
-        if (!worlds[article.world]) {
-
-            worlds[article.world] = [];
-
-        }
-
-        worlds[article.world].push(article);
-
-    });
-
-
-    container.innerHTML =
-        Object.keys(worlds)
-            .map(world => {
-
-                const story =
-                    worlds[world][
-                        Math.floor(
-                            Math.random() *
-                            worlds[world].length
-                        )
-                    ];
-
-
-                return `
-
-                    <article
-                        class="world-card clickable"
-                        data-event-id="${escapeHTML(story.event_id)}"
-                        data-article-id="${escapeHTML(story.id)}"
-                    >
-
-                        <small>
-                            WORLD DESK
-                        </small>
-
-                        <h3>
-                            ${escapeHTML(world)}
-                        </h3>
-
-                        <p>
-                            ${escapeHTML(story.headline)}
-                        </p>
-
-                        <small>
-                            ${worlds[world].length}
-                            reports available
-                        </small>
-
-                    </article>
-
-                `;
-
-            })
-            .join("");
-
-
-    container
-        .querySelectorAll(".world-card")
-        .forEach(card => {
-
-            card.addEventListener(
-                "click",
-                () => {
-
-                    openIncident(
-                        card.dataset.eventId,
-                        card.dataset.articleId
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/* =========================================
-   TICKER
-========================================= */
-
-function renderTicker() {
-
-    const stories =
-        allArticles.filter(
-            article =>
-                article.priority === "URGENT"
-        );
-
-
-    if (!stories.length) {
-        return;
-    }
-
-
-    const story =
-        stories[
-            Math.floor(
-                Math.random() *
-                stories.length
-            )
-        ];
-
-
-    $("#breakingTicker").textContent =
-        `${story.headline} — ${story.location}`;
-
-}
-
-
-/* =========================================
-   HOMEPAGE
-========================================= */
-
-function renderHomepage() {
-
-    renderLead();
-
-    renderLatest();
-
-    renderNewsGrid();
-
-    renderSmallSection(
-        "#npcNews",
-        ["NPC LIFE", "LOCAL"]
-    );
-
-    renderSmallSection(
-        "#businessNews",
-        ["BUSINESS", "ECONOMY", "EMPLOYMENT"]
-    );
-
-    renderSmallSection(
-        "#transportNews",
-        ["TRANSPORT", "UTILITIES", "DAMAGE"]
-    );
-
-    renderWorldNews();
-
-    renderTicker();
-
-}
-
-
-/* =========================================
-   NAVIGATION
-========================================= */
-
-document
-    .querySelectorAll(".main-nav a")
-    .forEach(link => {
-
-        link.addEventListener(
-            "click",
-            event => {
-
-                event.preventDefault();
-
-                activeCategory =
-                    link.dataset.category;
-
-                if (
-                    activeCategory === "ALL"
-                ) {
-
-                    showHomepage();
-
-                }
-
-                renderNewsGrid();
-
-                document
-                    .querySelector(
-                        ".news-grid-section"
-                    )
-                    .scrollIntoView({
-                        behavior: "smooth"
-                    });
-
-            }
-        );
-
-    });
-
-
-/* =========================================
-   NEW LEAD
-========================================= */
-
-$("#newLead")
-    .addEventListener(
-        "click",
-        event => {
-
-            event.stopPropagation();
-
-            renderLead();
-
-            window.scrollTo({
-                top: 0,
-                behavior: "smooth"
-            });
-
-        }
-    );
-
-
-/* =========================================
-   BACK BUTTON
-========================================= */
-
-$("#backButton")
-    .addEventListener(
-        "click",
-        () => {
-
-            history.pushState(
-                {},
-                "",
-                window.location.pathname
-            );
-
-            showHomepage();
-
-        }
-    );
-
-
-/* =========================================
-   URL INCIDENT
-========================================= */
-
-function checkForIncident() {
-
-    const hash =
-        window.location.hash;
-
-
-    if (
-        hash.startsWith("#incident/")
-    ) {
-
-        const eventId =
-            decodeURIComponent(
-                hash.replace(
-                    "#incident/",
-                    ""
-                )
-            );
-
-
-        openIncidentWithoutHistory(
-            eventId
-        );
-
-    }
-
-}
-
-
-function openIncidentWithoutHistory(
-    eventId
-) {
-
-    const articles =
-        getEventArticles(eventId);
-
-
-    if (!articles.length) {
-
-        showHomepage();
-
-        return;
-
-    }
-
-
-    renderIncident(
-        articles,
-        articles[0]
-    );
-
-
-    showIncident();
-
-}
-
-
-/* =========================================
-   BROWSER BACK/FORWARD
-========================================= */
-
-window.addEventListener(
-    "popstate",
-    () => {
-
-        checkForIncident();
-
-    }
+// ============================================================
+// START
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    loadNews
 );
-
-
-/* =========================================
-   DATE
-========================================= */
-
-function updateDate() {
-
-    const date =
-        new Date();
-
-
-    $("#currentDate")
-        .textContent =
-        date.toLocaleDateString(
-            "en-US",
-            {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            }
-        );
-
-}
-
-
-/* =========================================
-   START
-========================================= */
-
-updateDate();
-
-loadNews();
