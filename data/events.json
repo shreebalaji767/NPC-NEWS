@@ -1,0 +1,274 @@
+[
+  {
+    "id": "central-city-solar-knight",
+    "world": "SUPERHERO WORLD",
+    "location": "Central City",
+    "characters": [
+      "Solar Knight",
+      "Void King"
+    ],
+    "winner": "Solar Knight",
+    "duration": "12 minutes",
+    "damage": {
+      "buildings": 18,
+      "roads": 4,
+      "vehicles": 73,
+      "businesses": 31,
+      "npc_affected": 12400,
+      "injuries": 87,
+      "missing": 6,
+      "displaced": 420
+    },
+    "consequences": {
+      "transport_routes": 3,
+      "schools_closed": 6,
+      "hospitals_affected": 2,
+      "utilities": "power and water services are being inspected",
+      "economic_loss": 18500000
+    },
+    "npc_quotes": [
+      "My office is still standing, but the road to it is not.",
+      "The battle lasted twelve minutes. My landlord still wants rent.",
+      "I had work at eight. The train station no longer has a roof.",
+      "The heroes saved the city. Can someone save my car?"
+    ]
+  },
+  {
+    "id": "seoul-gate-breach",
+    "world": "HUNTER WORLD",
+    "location": "Seoul District 8",
+    "characters": [
+      "Hunter Zero",
+      "Red Gate Beast"
+    ],
+    "winner": "Hunter Zero",
+    "duration": "27 minutes",
+    "damage": {
+      "buildings": 42,
+      "roads": 11,
+      "vehicles": 186,
+      "businesses": 54,
+      "npc_affected": 28900,
+      "injuries": 143,
+      "missing": 12,
+      "displaced": 870
+    },
+    "consequences": {
+      "transport_routes": 7,
+      "schools_closed": 12,
+      "hospitals_affected": 4,
+      "utilities": "electricity remains unstable in several neighborhoods",
+      "economic_loss": 42300000
+    },
+    "npc_quotes": [
+      "The dungeon disappeared. Unfortunately, my apartment disappeared too.",
+      "They call it a successful raid. My shop calls it bankruptcy.",
+      "My train was cancelled because a monster landed on the station.",
+      "The gate closed. The repair bills did not."
+    ]
+  },
+  {
+    "id": "murim-river-market",
+    "world": "MURIM WORLD",
+    "location": "River Market",
+    "characters": [
+      "Iron Palm Master",
+      "White Crane Elder"
+    ],
+    "winner": "Iron Palm Master",
+    "duration": "41 minutes",
+    "damage": {
+      "buildings": 27,
+      "roads": 6,
+      "vehicles": 39,
+      "businesses": 73,
+      "npc_affected": 9300,
+      "injuries": 64,
+      "missing": 3,
+      "displaced": 210
+    },
+    "consequences": {
+      "transport_routes": 4,
+      "schools_closed": 3,
+      "hospitals_affected": 1,
+      "utilities": "water service has been interrupted near the market",
+      "economic_loss": 9700000
+    },
+    "npc_quotes": [
+      "The sect elders finished fighting. Nobody repaired the market.",
+      "My noodle shop survived three dynastic conflicts. This was the one that broke it.",
+      "They destroyed half the street and called it martial arts.",
+      "I only wanted to sell vegetables today."
+    ]
+  },
+  {
+    "id": "northgate-dragon",
+    "world": "FANTASY KINGDOM",
+    "location": "Northgate",
+    "characters": [
+      "Royal Champion",
+      "Ash Dragon"
+    ],
+    "winner": "Royal Champion",
+    "duration": "3 hours",
+    "damage": {
+      "buildings": 91,
+      "roads": 18,
+      "vehicles": 112,
+      "businesses": 46,
+      "npc_affected": 36700,
+      "injuries": 312,
+      "missing": 24,
+      "displaced": 1800
+    },
+    "consequences": {
+      "transport_routes": 9,
+      "schools_closed": 17,
+      "hospitals_affected": 5,
+      "utilities": "water, food and power distribution have been disrupted",
+      "economic_loss": 71500000
+    },
+    "npc_quotes": [
+      "The dragon is dead. The bakery is also dead.",
+      "The kingdom says victory was achieved. My house disagrees.",
+      "We were told to evacuate. Nobody told us where to go.",
+      "The castle survived. My rent increased."
+    ]
+  },
+  {
+    "id": "neo-tokyo-cosmic-battle",
+    "world": "SCI-FI WORLD",
+    "location": "Neo-Tokyo Sector 4",
+    "characters": [
+      "Star Sentinel",
+      "Omega Machine"
+    ],
+    "winner": "Star Sentinel",
+    "duration": "8 minutes",
+    "damage": {
+      "buildings": 13,
+      "roads": 3,
+      "vehicles": 94,
+      "businesses": 28,
+      "npc_affected": 19200,
+      "injuries": 41,
+      "missing": 2,
+      "displaced": 330
+    },
+    "consequences": {
+      "transport_routes": 5,
+      "schools_closed": 4,
+      "hospitals_affected": 2,
+      "utilities": "communications and network services remain unstable",
+      "economic_loss": 29200000
+    },
+    "npc_quotes": [
+      "The laser missed the villain and hit my apartment.",
+      "My delivery job requires the internet. The internet is currently on fire.",
+      "Eight minutes of fighting erased twelve years of savings.",
+      "The hero saved the planet. My Wi-Fi did not survive."
+    ]
+  },
+  {
+    "id": "dark-city-vigilante",
+    "world": "COMIC WORLD",
+    "location": "Dark City",
+    "characters": [
+      "Night Sentinel",
+      "Grave Joker"
+    ],
+    "winner": "Night Sentinel",
+    "duration": "19 minutes",
+    "damage": {
+      "buildings": 22,
+      "roads": 5,
+      "vehicles": 67,
+      "businesses": 38,
+      "npc_affected": 15400,
+      "injuries": 72,
+      "missing": 8,
+      "displaced": 510
+    },
+    "consequences": {
+      "transport_routes": 4,
+      "schools_closed": 5,
+      "hospitals_affected": 3,
+      "utilities": "street lighting and communications have been disrupted",
+      "economic_loss": 21300000
+    },
+    "npc_quotes": [
+      "Crime went down. My insurance premium went up.",
+      "The vigilante saved us again. My car needs saving too.",
+      "Another rooftop fight. Another week of construction.",
+      "Can they please fight somewhere that isn't my neighborhood?"
+    ]
+  },
+  {
+    "id": "capital-hero-invasion",
+    "world": "SUPERHERO WORLD",
+    "location": "Capital District",
+    "characters": [
+      "Thunder Guardian",
+      "Titan Warlord"
+    ],
+    "winner": "Thunder Guardian",
+    "duration": "54 minutes",
+    "damage": {
+      "buildings": 76,
+      "roads": 14,
+      "vehicles": 301,
+      "businesses": 82,
+      "npc_affected": 61100,
+      "injuries": 527,
+      "missing": 31,
+      "displaced": 2400
+    },
+    "consequences": {
+      "transport_routes": 14,
+      "schools_closed": 23,
+      "hospitals_affected": 8,
+      "utilities": "power, water and communications are operating under emergency restrictions",
+      "economic_loss": 128000000
+    },
+    "npc_quotes": [
+      "I watched the final punch from my basement because there was no roof left.",
+      "They saved the capital. The capital needs a new capital.",
+      "My office building is now three floors shorter.",
+      "The battle ended yesterday. The traffic has not."
+    ]
+  },
+  {
+    "id": "demon-city-hunt",
+    "world": "DARK FANTASY WORLD",
+    "location": "Demon City",
+    "characters": [
+      "Crimson Hunter",
+      "Demon General"
+    ],
+    "winner": "Crimson Hunter",
+    "duration": "33 minutes",
+    "damage": {
+      "buildings": 38,
+      "roads": 9,
+      "vehicles": 58,
+      "businesses": 44,
+      "npc_affected": 22100,
+      "injuries": 189,
+      "missing": 14,
+      "displaced": 740
+    },
+    "consequences": {
+      "transport_routes": 6,
+      "schools_closed": 8,
+      "hospitals_affected": 3,
+      "utilities": "water and heating systems are undergoing emergency repairs",
+      "economic_loss": 38700000
+    },
+    "npc_quotes": [
+      "The demon is gone. The rent is still due.",
+      "My neighborhood survived the apocalypse but not the cleanup.",
+      "We have fought demons before. We have never had this much paperwork.",
+      "Can somebody explain why the repair bill is higher than the city's budget?"
+    ]
+  }
+]
