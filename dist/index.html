@@ -2,11 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>NPC NEWS — Fictional World News Network</title>
 
@@ -18,7 +14,7 @@
 <header class="site-header">
 
     <div class="top-strip">
-        FICTIONAL WORLD NEWS NETWORK
+        <span>FICTIONAL WORLD NEWS NETWORK</span>
         <span id="currentDate"></span>
     </div>
 
@@ -35,7 +31,7 @@
         <div class="network-info">
             GLOBAL FICTIONAL NEWS
             <br>
-            <strong>LIVE</strong>
+            <strong>● LIVE</strong>
         </div>
 
     </div>
@@ -73,140 +69,392 @@
 
 <main class="container">
 
-    <section class="world-status">
+    <!-- =========================
+         HOMEPAGE
+    ========================== -->
 
-        <div>
-            <small>NETWORK STATUS</small>
-            <strong>ALL WORLDS ONLINE</strong>
-        </div>
+    <div id="homepage">
 
-        <div>
-            <small>LIVE EVENTS</small>
-            <strong id="eventCount">--</strong>
-        </div>
+        <section class="world-status">
 
-        <div>
-            <small>ARTICLES</small>
-            <strong id="articleCount">--</strong>
-        </div>
-
-        <div>
-            <small>NPCs AFFECTED</small>
-            <strong id="npcCount">--</strong>
-        </div>
-
-    </section>
-
-
-    <section class="lead-section">
-
-        <article class="lead-story">
-
-            <div class="article-label" id="leadCategory">
-                BREAKING
+            <div>
+                <small>NETWORK STATUS</small>
+                <strong>ALL WORLDS ONLINE</strong>
             </div>
 
-            <h1 id="leadHeadline">
-                Loading newsroom...
+            <div>
+                <small>LIVE EVENTS</small>
+                <strong id="eventCount">--</strong>
+            </div>
+
+            <div>
+                <small>ARTICLES</small>
+                <strong id="articleCount">--</strong>
+            </div>
+
+            <div>
+                <small>NPCs AFFECTED</small>
+                <strong id="npcCount">--</strong>
+            </div>
+
+        </section>
+
+
+        <section class="lead-section">
+
+            <article class="lead-story">
+
+                <div class="article-label" id="leadCategory">
+                    BREAKING
+                </div>
+
+                <h1 id="leadHeadline">
+                    Loading newsroom...
+                </h1>
+
+                <p class="lead-summary" id="leadSummary">
+                    Please wait while NPC News gathers reports.
+                </p>
+
+                <div class="article-meta" id="leadMeta"></div>
+
+                <div class="lead-body" id="leadBody"></div>
+
+                <button id="newLead" class="read-button">
+                    LOAD ANOTHER STORY
+                </button>
+
+            </article>
+
+
+            <aside class="latest-column">
+
+                <div class="section-title">
+                    LATEST NEWS
+                </div>
+
+                <div id="latestNews"></div>
+
+            </aside>
+
+        </section>
+
+
+        <section class="news-grid-section">
+
+            <div class="section-heading">
+
+                <h2>
+                    THE WORLD IS STILL DEALING WITH IT
+                </h2>
+
+                <span>
+                    LATEST REPORTS
+                </span>
+
+            </div>
+
+            <div id="newsGrid" class="news-grid"></div>
+
+        </section>
+
+
+        <section class="three-column">
+
+            <div>
+
+                <div class="section-title">
+                    NPC LIFE
+                </div>
+
+                <div id="npcNews"></div>
+
+            </div>
+
+
+            <div>
+
+                <div class="section-title">
+                    BUSINESS & ECONOMY
+                </div>
+
+                <div id="businessNews"></div>
+
+            </div>
+
+
+            <div>
+
+                <div class="section-title">
+                    TRANSPORT & INFRASTRUCTURE
+                </div>
+
+                <div id="transportNews"></div>
+
+            </div>
+
+        </section>
+
+
+        <section class="worlds-section">
+
+            <div class="section-heading">
+
+                <h2>
+                    NEWS FROM ALL WORLDS
+                </h2>
+
+            </div>
+
+            <div id="worldNews" class="world-grid"></div>
+
+        </section>
+
+    </div>
+
+
+    <!-- =========================
+         FULL INCIDENT
+    ========================== -->
+
+    <article id="incidentPage" class="incident-page">
+
+        <button
+            id="backButton"
+            class="back-button">
+            ← BACK TO NEWSROOM
+        </button>
+
+
+        <div class="incident-header">
+
+            <div
+                id="incidentCategory"
+                class="article-label">
+                INCIDENT
+            </div>
+
+            <div
+                id="incidentWorld"
+                class="incident-world">
+            </div>
+
+            <h1 id="incidentHeadline">
             </h1>
 
-            <p class="lead-summary" id="leadSummary">
-                Please wait while NPC News gathers reports from fictional worlds.
+            <p
+                id="incidentSummary"
+                class="incident-summary">
             </p>
 
-            <div class="article-meta" id="leadMeta"></div>
-
-            <div class="lead-body" id="leadBody"></div>
-
-            <button id="newLead" class="read-button">
-                LOAD ANOTHER STORY
-            </button>
-
-        </article>
-
-
-        <aside class="latest-column">
-
-            <div class="section-title">
-                LATEST NEWS
+            <div
+                id="incidentMeta"
+                class="article-meta">
             </div>
 
-            <div id="latestNews"></div>
-
-        </aside>
-
-    </section>
-
-
-    <section class="news-grid-section">
-
-        <div class="section-heading">
-
-            <h2>
-                THE WORLD IS STILL DEALING WITH IT
-            </h2>
-
-            <span>
-                LATEST REPORTS
-            </span>
-
         </div>
 
-        <div id="newsGrid" class="news-grid"></div>
 
-    </section>
+        <!-- MAIN INCIDENT -->
+
+        <section class="incident-main">
+
+            <div class="incident-content">
 
 
-    <section class="three-column">
+                <!-- INCIDENT OVERVIEW -->
 
-        <div>
+                <section class="incident-section">
 
-            <div class="section-title">
-                NPC LIFE
+                    <h2>
+                        WHAT HAPPENED
+                    </h2>
+
+                    <div
+                        id="incidentOverview"
+                        class="incident-text">
+                    </div>
+
+                </section>
+
+
+                <!-- CHARACTERS -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        THE PEOPLE INVOLVED
+                    </h2>
+
+                    <div
+                        id="incidentCharacters"
+                        class="character-grid">
+                    </div>
+
+                </section>
+
+
+                <!-- TIMELINE -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        INCIDENT TIMELINE
+                    </h2>
+
+                    <div
+                        id="incidentTimeline"
+                        class="timeline">
+                    </div>
+
+                </section>
+
+
+                <!-- BATTLE -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        THE BATTLE
+                    </h2>
+
+                    <div
+                        id="incidentBattle"
+                        class="incident-text">
+                    </div>
+
+                </section>
+
+
+                <!-- DAMAGE -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        DAMAGE REPORT
+                    </h2>
+
+                    <div
+                        id="damageGrid"
+                        class="damage-grid">
+                    </div>
+
+                </section>
+
+
+                <!-- NPC LIFE -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        HOW NPC LIFE WAS AFFECTED
+                    </h2>
+
+                    <div
+                        id="npcImpact"
+                        class="impact-grid">
+                    </div>
+
+                </section>
+
+
+                <!-- NPC QUOTES -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        VOICES FROM THE GROUND
+                    </h2>
+
+                    <div
+                        id="npcQuotes"
+                        class="quotes">
+                    </div>
+
+                </section>
+
+
+                <!-- AFTERMATH -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        WHAT HAPPENS NEXT
+                    </h2>
+
+                    <div
+                        id="incidentAftermath"
+                        class="incident-text">
+                    </div>
+
+                </section>
+
+
+                <!-- RELATED -->
+
+                <section class="incident-section">
+
+                    <h2>
+                        RELATED COVERAGE
+                    </h2>
+
+                    <div
+                        id="relatedArticles"
+                        class="related-grid">
+                    </div>
+
+                </section>
+
             </div>
 
-            <div id="npcNews"></div>
 
-        </div>
+            <!-- INCIDENT SIDEBAR -->
 
+            <aside class="incident-sidebar">
 
-        <div>
+                <div class="sidebar-box">
 
-            <div class="section-title">
-                BUSINESS & ECONOMY
-            </div>
+                    <div class="section-title">
+                        INCIDENT FACTS
+                    </div>
 
-            <div id="businessNews"></div>
+                    <div id="incidentFacts"></div>
 
-        </div>
-
-
-        <div>
-
-            <div class="section-title">
-                TRANSPORT & INFRASTRUCTURE
-            </div>
-
-            <div id="transportNews"></div>
-
-        </div>
-
-    </section>
+                </div>
 
 
-    <section class="worlds-section">
+                <div class="sidebar-box">
 
-        <div class="section-heading">
+                    <div class="section-title">
+                        THE VERDICT
+                    </div>
 
-            <h2>
-                NEWS FROM ALL WORLDS
-            </h2>
+                    <div
+                        id="incidentWinner"
+                        class="winner-box">
+                    </div>
 
-        </div>
+                </div>
 
-        <div id="worldNews" class="world-grid"></div>
 
-    </section>
+                <div class="sidebar-box">
+
+                    <div class="section-title">
+                        NPC NEWS
+                    </div>
+
+                    <p class="sidebar-text">
+                        The heroes get the headlines.
+                        The NPCs get the consequences.
+                    </p>
+
+                </div>
+
+            </aside>
+
+        </section>
+
+    </article>
 
 </main>
 
