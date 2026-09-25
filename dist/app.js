@@ -72,14 +72,17 @@ async function loadNews() {
         if (Array.isArray(data)) {
 
             /*
-             We need to determine whether the
-             array contains events or articles.
+             Determine whether the array contains
+             events or articles.
             */
 
             if (
                 data.length &&
-                data[0].damage &&
-                data[0].consequences
+                (
+                    data[0].damage ||
+                    data[0].consequences ||
+                    data[0].characters
+                )
             ) {
 
                 allEvents = data;
@@ -95,6 +98,7 @@ async function loadNews() {
 
                 allEvents =
                     createEventsFromArticles();
+
             }
 
         } else {
@@ -223,6 +227,12 @@ function normalizeEvent(event) {
         event.consequences || {};
 
 
+    const characters =
+        Array.isArray(event.characters)
+            ? event.characters
+            : [];
+
+
     return {
 
         ...event,
@@ -241,9 +251,7 @@ function normalizeEvent(event) {
             "UNKNOWN LOCATION",
 
         characters:
-            Array.isArray(event.characters)
-                ? event.characters
-                : [],
+            characters,
 
         winner:
             event.winner ||
@@ -362,6 +370,25 @@ function normalizeEvent(event) {
         battle_summary:
             event.battle_summary ||
             event.battleReport ||
+            "",
+
+        /*
+         FIX:
+         Preserve a general incident overview if
+         generate.py provides one.
+        */
+
+        overview:
+            event.overview ||
+            "",
+
+        /*
+         FIX:
+         Preserve optional incident title.
+        */
+
+        title:
+            event.title ||
             ""
 
     };
@@ -479,15 +506,56 @@ function createArticlesFromEvents(events) {
             e.consequences;
 
 
+        /*
+         FIX:
+         Every automatically-created article carries
+         enough incident information to reconstruct
+         the complete incident if necessary.
+        */
+
         const base = {
 
-            event_id: e.id,
+            event_id:
+                e.id,
 
-            world: world,
+            world:
+                world,
 
-            location: location,
+            location:
+                location,
 
-            reporter: "NPC News Desk",
+            characters:
+                e.characters,
+
+            winner:
+                e.winner,
+
+            duration:
+                e.duration,
+
+            damage:
+                e.damage,
+
+            consequences:
+                e.consequences,
+
+            npc_quotes:
+                e.npc_quotes,
+
+            timeline:
+                e.timeline,
+
+            aftermath:
+                e.aftermath,
+
+            battle_summary:
+                e.battle_summary,
+
+            overview:
+                e.overview,
+
+            reporter:
+                "NPC News Desk",
 
             published:
                 new Date().toISOString()
@@ -1375,10 +1443,6 @@ function renderTicker() {
 
 function handleGlobalArticleClick(event) {
 
-    /*
-       Don't interfere with navigation.
-    */
-
     const nav =
         event.target.closest(
             ".main-nav a"
@@ -1390,10 +1454,6 @@ function handleGlobalArticleClick(event) {
     }
 
 
-    /*
-       Don't interfere with Back button.
-    */
-
     if (
         event.target.closest(
             "#backButton"
@@ -1403,10 +1463,6 @@ function handleGlobalArticleClick(event) {
     }
 
 
-    /*
-       Don't interfere with LOAD ANOTHER STORY.
-    */
-
     if (
         event.target.closest(
             "#newLead"
@@ -1415,10 +1471,6 @@ function handleGlobalArticleClick(event) {
         return;
     }
 
-
-    /*
-       Find the nearest article/event element.
-    */
 
     const clickable =
         event.target.closest(
@@ -1522,10 +1574,6 @@ function openIncident(
         null;
 
 
-    /*
-       Change URL.
-    */
-
     const newHash =
         "#incident/" +
         encodeURIComponent(
@@ -1627,10 +1675,6 @@ function renderIncident(
         selectedArticle || {};
 
 
-    /*
-       HEADER
-    */
-
     setText(
         "incidentCategory",
         article.category ||
@@ -1647,6 +1691,7 @@ function renderIncident(
     setText(
         "incidentHeadline",
         article.headline ||
+        event.title ||
         buildDefaultHeadline(event)
     );
 
@@ -1672,10 +1717,6 @@ function renderIncident(
         })
     );
 
-
-    /*
-       MAIN INCIDENT
-    */
 
     setHTML(
         "incidentOverview",
@@ -1729,12 +1770,32 @@ function buildOverview(
         event.consequences || {};
 
 
+    /*
+     FIX:
+     Prefer the general incident overview.
+
+     Before:
+     article.body was always used first.
+
+     That meant clicking an EMPLOYMENT article
+     made the entire incident overview begin
+     with the employment story.
+
+     Now:
+     event.overview is preferred.
+    */
+
+    const overviewText =
+        event.overview ||
+        article.body ||
+        `The incident took place in ${event.location} within the ${event.world}. The confrontation involved ${formatCharacters(event)} and lasted ${event.duration}.`;
+
+
     return `
 
         <p>
             ${escapeHTML(
-                article.body ||
-                `The incident took place in ${event.location} within the ${event.world}. The confrontation involved ${formatCharacters(event)} and lasted ${event.duration}.`
+                overviewText
             )}
         </p>
 
@@ -1995,7 +2056,7 @@ function renderDamage(event) {
 
 
     const damage =
-        event.damage;
+        event.damage || {};
 
 
     const items = [
@@ -2083,7 +2144,7 @@ function renderNPCImpact(event) {
 
 
     const consequences =
-        event.consequences;
+        event.consequences || {};
 
 
     const items = [
@@ -2388,11 +2449,11 @@ function renderFacts(event) {
 
 
     const damage =
-        event.damage;
+        event.damage || {};
 
 
     const consequences =
-        event.consequences;
+        event.consequences || {};
 
 
     container.innerHTML = `
@@ -2553,52 +2614,68 @@ function createEventsFromArticles() {
 
             } else {
 
-                map[eventId] = {
+                /*
+                 FIX:
+                 This fallback now understands all of the
+                 incident fields that generate.py will put
+                 into every article.
+                */
 
-                    id:
-                        eventId,
+                map[eventId] =
+                    normalizeEvent({
 
-                    world:
-                        article.world ||
-                        "UNKNOWN WORLD",
+                        id:
+                            eventId,
 
-                    location:
-                        article.location ||
-                        "UNKNOWN LOCATION",
+                        world:
+                            article.world ||
+                            "UNKNOWN WORLD",
 
-                    characters:
-                        article.characters ||
-                        [],
+                        location:
+                            article.location ||
+                            "UNKNOWN LOCATION",
 
-                    winner:
-                        article.winner ||
-                        "UNCONFIRMED",
+                        characters:
+                            article.characters ||
+                            [],
 
-                    duration:
-                        article.duration ||
-                        "UNKNOWN",
+                        winner:
+                            article.winner ||
+                            "UNCONFIRMED",
 
-                    damage:
-                        article.damage ||
-                        {},
+                        duration:
+                            article.duration ||
+                            "UNKNOWN",
 
-                    consequences:
-                        article.consequences ||
-                        {},
+                        damage:
+                            article.damage ||
+                            {},
 
-                    npc_quotes:
-                        article.npc_quotes ||
-                        [],
+                        consequences:
+                            article.consequences ||
+                            {},
 
-                    timeline:
-                        article.timeline ||
-                        [],
+                        npc_quotes:
+                            article.npc_quotes ||
+                            [],
 
-                    aftermath:
-                        article.aftermath ||
-                        null
+                        timeline:
+                            article.timeline ||
+                            [],
 
-                };
+                        aftermath:
+                            article.aftermath ||
+                            null,
+
+                        battle_summary:
+                            article.battle_summary ||
+                            "",
+
+                        overview:
+                            article.overview ||
+                            ""
+
+                    });
 
             }
 
