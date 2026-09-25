@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import random
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
@@ -21,6 +21,18 @@ EVENTS_FILE = DATA_DIR / "events.json"
 
 
 # ============================================================
+# SETTINGS
+# ============================================================
+
+# Number of different versions generated for each news type.
+# More variants = more possible newsroom combinations.
+VARIANTS_PER_EVENT = 4
+
+# Number of minor local stories generated for every event.
+MINOR_STORIES_PER_EVENT = 24
+
+
+# ============================================================
 # DIRECTORIES
 # ============================================================
 
@@ -34,6 +46,7 @@ def ensure_directories():
 # ============================================================
 
 def load_events():
+
     if not EVENTS_FILE.exists():
         raise FileNotFoundError(
             f"Events file not found:\n{EVENTS_FILE}"
@@ -43,9 +56,18 @@ def load_events():
         "r",
         encoding="utf-8"
     ) as f:
+
         events = json.load(f)
 
+    if isinstance(events, dict):
+
+        events = events.get(
+            "events",
+            []
+        )
+
     if not isinstance(events, list):
+
         raise ValueError(
             "data/events.json must contain a JSON array of events."
         )
@@ -58,25 +80,171 @@ def load_events():
 # ============================================================
 
 def number(value):
+
     try:
         return f"{int(value):,}"
+
     except (ValueError, TypeError):
+
         return "0"
 
 
-def money(value):
+def indian_number(value):
+
     try:
-        return f"₹{int(value):,}"
+
+        value = int(value)
+
     except (ValueError, TypeError):
+
+        return "0"
+
+    sign = ""
+
+    if value < 0:
+
+        sign = "-"
+
+        value = abs(value)
+
+    text = str(value)
+
+    if len(text) <= 3:
+
+        return sign + text
+
+    last_three = text[-3:]
+
+    remaining = text[:-3]
+
+    groups = []
+
+    while len(remaining) > 2:
+
+        groups.insert(
+            0,
+            remaining[-2:]
+        )
+
+        remaining = remaining[:-2]
+
+    if remaining:
+
+        groups.insert(
+            0,
+            remaining
+        )
+
+    return (
+        sign +
+        ",".join(
+            groups +
+            [last_three]
+        )
+    )
+
+
+def money(value):
+
+    try:
+
+        return (
+            "₹" +
+            indian_number(value)
+        )
+
+    except (ValueError, TypeError):
+
         return "₹0"
 
 
 def choose(items):
+
+    if not items:
+        return ""
+
     return random.choice(items)
 
 
 def random_id():
-    return f"NPC-{random.randint(100000, 999999)}"
+
+    return (
+        "NPC-" +
+        "".join(
+            random.choices(
+                "abcdefghijklmnopqrstuvwxyz0123456789",
+                k=10
+            )
+        )
+    )
+
+
+# ============================================================
+# TEXT VARIATION HELPERS
+# ============================================================
+
+REPORTERS = [
+
+    "NPC News Desk",
+    "World Affairs Desk",
+    "Local News Bureau",
+    "Infrastructure Desk",
+    "Business Desk",
+    "Transport Desk",
+    "Public Safety Desk",
+    "Housing Desk",
+    "Economic Desk",
+    "Special Correspondent",
+    "City Desk",
+    "Night Desk",
+    "Morning Desk",
+    "Emergency Desk",
+    "Community Desk",
+]
+
+
+OPENERS = [
+
+    "Residents woke to another complicated morning",
+
+    "The latest assessment is now coming in",
+
+    "Authorities have begun releasing additional details",
+
+    "Local officials are continuing their assessment",
+
+    "The affected district is slowly returning to normal",
+
+    "Emergency crews remain active across the area",
+
+    "Residents are now facing the practical consequences",
+
+    "Officials say the situation is stabilising",
+
+    "The battle may be over, but the disruption continues",
+
+    "A clearer picture of the aftermath is beginning to emerge",
+
+]
+
+
+NPC_REACTIONS = [
+
+    "Residents say the biggest problem is simply getting through the day.",
+
+    "People living nearby say normal routines remain difficult.",
+
+    "Local residents are now dealing with the less dramatic consequences of the incident.",
+
+    "Families and workers are trying to adapt while repairs continue.",
+
+    "For ordinary residents, the battle has become an infrastructure problem.",
+
+    "The immediate danger has passed, but daily life remains disrupted.",
+
+    "Residents say they are more concerned about tomorrow morning than yesterday's battle.",
+
+]
 
 
 # ============================================================
@@ -84,6 +252,7 @@ def random_id():
 # ============================================================
 
 def validate_event(event):
+
     required = [
         "id",
         "world",
@@ -100,17 +269,23 @@ def validate_event(event):
     ]
 
     if missing:
+
         raise ValueError(
             f"Event is missing required fields: {missing}\n"
             f"Event: {event}"
         )
 
-    if not isinstance(event["characters"], list):
+    if not isinstance(
+        event["characters"],
+        list
+    ):
+
         raise ValueError(
             f"characters must be a list in event {event['id']}"
         )
 
     if len(event["characters"]) < 2:
+
         raise ValueError(
             f"Event {event['id']} must contain at least "
             f"two characters."
@@ -122,6 +297,7 @@ def validate_event(event):
 # ============================================================
 
 def build_timeline(event):
+
     hero = event["characters"][0]
     villain = event["characters"][1]
 
@@ -138,6 +314,7 @@ def build_timeline(event):
     )
 
     return [
+
         {
             "time": "START",
             "title": "Incident begins",
@@ -146,6 +323,7 @@ def build_timeline(event):
                 f"begun their confrontation in {location}."
             ),
         },
+
         {
             "time": "EARLY",
             "title": "Public infrastructure enters the battle zone",
@@ -155,6 +333,7 @@ def build_timeline(event):
                 f"vehicles become exposed to the conflict."
             ),
         },
+
         {
             "time": "RESPONSE",
             "title": "Emergency response begins",
@@ -163,6 +342,7 @@ def build_timeline(event):
                 f"while residents are advised to avoid the incident zone."
             ),
         },
+
         {
             "time": "DURING",
             "title": "Battle continues",
@@ -171,6 +351,7 @@ def build_timeline(event):
                 f"{duration}, according to preliminary reports."
             ),
         },
+
         {
             "time": "END",
             "title": "Confrontation ends",
@@ -180,6 +361,7 @@ def build_timeline(event):
                 f"continue across {location}."
             ),
         },
+
         {
             "time": "AFTERMATH",
             "title": "Residents begin dealing with the consequences",
@@ -189,10 +371,12 @@ def build_timeline(event):
                 f"{location}."
             ),
         },
+
     ]
 
 
 def build_overview(event):
+
     location = event["location"]
     world = event["world"]
 
@@ -209,8 +393,15 @@ def build_overview(event):
         hero
     )
 
-    damage = event.get("damage", {})
-    consequences = event.get("consequences", {})
+    damage = event.get(
+        "damage",
+        {}
+    )
+
+    consequences = event.get(
+        "consequences",
+        {}
+    )
 
     npc_affected = damage.get(
         "npc_affected",
@@ -228,13 +419,18 @@ def build_overview(event):
     )
 
     return {
+
         "headline_summary": (
-            f"The confrontation between {hero} and {villain} "
-            f"ended after {duration}, leaving residents of "
+
+            f"The confrontation between "
+            f"{hero} and {villain} ended after "
+            f"{duration}, leaving residents of "
             f"{location} to deal with the consequences."
+
         ),
 
         "paragraphs": [
+
             (
                 f"The incident took place in {location}, within the "
                 f"{world}. The confrontation involved {hero} and "
@@ -261,11 +457,13 @@ def build_overview(event):
                 f"Preliminary economic losses are estimated at "
                 f"{money(economic_loss)}."
             ),
+
         ],
     }
 
 
 def build_battle_report(event):
+
     hero = event["characters"][0]
     villain = event["characters"][1]
 
@@ -282,7 +480,9 @@ def build_battle_report(event):
     location = event["location"]
 
     return {
+
         "paragraphs": [
+
             (
                 f"The confrontation involved {hero} and {villain} "
                 f"in {location}."
@@ -302,15 +502,25 @@ def build_battle_report(event):
             (
                 f"The reported winner was {winner}."
             ),
+
         ]
+
     }
 
 
 def build_aftermath(event):
+
     location = event["location"]
 
-    damage = event.get("damage", {})
-    consequences = event.get("consequences", {})
+    damage = event.get(
+        "damage",
+        {}
+    )
+
+    consequences = event.get(
+        "consequences",
+        {}
+    )
 
     displaced = damage.get(
         "displaced",
@@ -363,6 +573,7 @@ def build_aftermath(event):
     )
 
     return {
+
         "immediate": (
             f"Emergency services remain active across {location}. "
             f"Authorities are assessing {number(buildings)} damaged "
@@ -390,6 +601,7 @@ def build_aftermath(event):
             f"business recovery and civilian relocation are expected "
             f"to continue after the battle."
         ),
+
     }
 
 
@@ -405,66 +617,173 @@ def make_article(
     body,
     priority="NORMAL",
     article_type="REPORT",
+    published=None,
 ):
+
     return {
-        "id": random_id(),
 
-        "event_id": event["id"],
+        "id":
+            random_id(),
 
-        "category": category,
+        "event_id":
+            event["id"],
 
-        "type": article_type,
+        "category":
+            category,
 
-        "priority": priority,
+        "type":
+            article_type,
 
-        "headline": headline,
+        "priority":
+            priority,
 
-        "summary": summary,
+        "headline":
+            headline,
 
-        "body": body,
+        "summary":
+            summary,
 
-        "world": event["world"],
+        "body":
+            body,
 
-        "location": event["location"],
+        "world":
+            event["world"],
 
-        "characters": event["characters"],
+        "location":
+            event["location"],
 
-        "winner": event.get(
-            "winner",
-            event["characters"][0]
-        ),
+        "characters":
+            event["characters"],
 
-        "duration": event.get(
-            "duration",
-            "UNKNOWN"
-        ),
+        "winner":
+            event.get(
+                "winner",
+                event["characters"][0]
+            ),
 
-        "published": datetime.now().strftime(
-            "%Y-%m-%d %H:%M"
-        ),
+        "duration":
+            event.get(
+                "duration",
+                "UNKNOWN"
+            ),
 
-        "reporter": choose([
-            "NPC News Desk",
-            "World Affairs Desk",
-            "Local News Bureau",
-            "Infrastructure Desk",
-            "Business Desk",
-            "Transport Desk",
-            "Public Safety Desk",
-            "Housing Desk",
-            "Economic Desk",
-            "Special Correspondent",
-        ]),
+        "damage":
+            event.get(
+                "damage",
+                {}
+            ),
+
+        "consequences":
+            event.get(
+                "consequences",
+                {}
+            ),
+
+        "npc_quotes":
+            event.get(
+                "npc_quotes",
+                []
+            ),
+
+        "timeline":
+            event.get(
+                "timeline",
+                []
+            ),
+
+        "aftermath":
+            event.get(
+                "aftermath",
+                {}
+            ),
+
+        "battle_summary":
+            event.get(
+                "battle_summary",
+                ""
+            ),
+
+        "published":
+            published or datetime.now().isoformat(),
+
+        "reporter":
+            choose(REPORTERS),
+
     }
 
 
 # ============================================================
-# ARTICLE GENERATION
+# PUBLICATION TIME GENERATOR
 # ============================================================
 
-def generate_articles(event):
+def make_publication_time(
+    base_time,
+    index
+):
+
+    # Spread stories across the fictional newsroom day.
+    offset_minutes = (
+        random.randint(
+            0,
+            23 * 60
+        ) +
+        index * random.randint(
+            1,
+            8
+        )
+    )
+
+    published =
+        base_time + timedelta(
+            minutes=offset_minutes
+        )
+
+    return published.isoformat(
+        timespec="minutes"
+    )
+
+
+# ============================================================
+# UNIQUE ARTICLE HELPER
+# ============================================================
+
+def add_article(
+    articles,
+    seen_headlines,
+    article,
+):
+
+    headline_key =
+        article["headline"].strip().lower()
+
+    if headline_key in seen_headlines:
+
+        return False
+
+    seen_headlines.add(
+        headline_key
+    )
+
+    articles.append(
+        article
+    )
+
+    return True
+
+
+# ============================================================
+# GENERATE MAIN ARTICLE VARIANTS
+# ============================================================
+
+def generate_main_variants(
+    event,
+    variant,
+    base_time
+):
 
     articles = []
+
+    seen = set()
 
     world = event["world"]
     location = event["location"]
@@ -478,7 +797,6 @@ def generate_articles(event):
     )
 
     damage = event["damage"]
-
     consequences = event["consequences"]
 
     buildings = damage.get(
@@ -551,85 +869,224 @@ def generate_articles(event):
         0
     )
 
-    # ========================================================
-    # 1 BREAKING
-    # ========================================================
+    quotes = event.get(
+        "npc_quotes",
+        []
+    )
 
-    articles.append(
+    quote = choose(
+        quotes
+        or [
+            "My apartment is still standing. The street is not.",
+            "The heroes left. We still have work tomorrow.",
+            "Nobody asked whether our shop could survive another battle.",
+            "I just want the bus to run again.",
+        ]
+    )
+
+
+    # --------------------------------------------------------
+    # BREAKING VARIANTS
+    # --------------------------------------------------------
+
+    breaking_headlines = [
+
+        f"{hero} defeats {villain} after {duration} battle",
+
+        f"{villain} defeated as {location} battle finally ends",
+
+        f"{hero} wins confrontation, residents face aftermath",
+
+        f"{location} battle ends after {duration} of destruction",
+
+    ]
+
+
+    breaking_summaries = [
+
+        (
+            f"The battle has ended, but residents of "
+            f"{location} are now dealing with the consequences."
+        ),
+
+        (
+            f"{winner} has emerged from the confrontation as "
+            f"emergency crews move into the affected district."
+        ),
+
+        (
+            f"The fighting is over. The cleanup operation is now "
+            f"becoming the main story in {location}."
+        ),
+
+        (
+            f"Authorities are beginning a large-scale assessment "
+            f"following the confrontation."
+        ),
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "BREAKING",
-            f"{hero} defeats {villain} after {duration} battle",
+            breaking_headlines[
+                variant %
+                len(breaking_headlines)
+            ],
+            breaking_summaries[
+                variant %
+                len(breaking_summaries)
+            ],
             (
-                f"The battle in {location} has ended, "
-                f"but residents are now dealing with the aftermath."
-            ),
-            (
-                f"{location} — The confrontation between {hero} "
-                f"and {villain} has ended after approximately "
-                f"{duration}. {winner} has been declared the victor. "
-                f"Emergency crews are now entering the affected area "
-                f"while residents attempt to determine whether their "
-                f"homes, workplaces and normal routines can continue."
+                f"{location} — {choose(OPENERS)}. "
+                f"The confrontation between {hero} and "
+                f"{villain} lasted approximately {duration}. "
+                f"{winner} was reported as the victor. "
+                f"Emergency crews are now entering the affected "
+                f"district while residents attempt to determine "
+                f"whether homes, workplaces and normal routines "
+                f"can continue."
             ),
             priority="URGENT",
             article_type="BREAKING",
+            published=make_publication_time(
+                base_time,
+                variant
+            ),
         )
     )
 
-    # ========================================================
-    # 2 BATTLE
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # BATTLE VARIANTS
+    # --------------------------------------------------------
+
+    battle_headlines = [
+
+        f"{hero} vs {villain}: What happened in {location}",
+
+        f"Inside the {duration} battle that shook {location}",
+
+        f"How the {hero}-{villain} confrontation unfolded",
+
+        f"Battle timeline: The confrontation that changed {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "BATTLE",
-            f"{hero} vs {villain}: What happened in {location}",
-            "A timeline of the confrontation and its immediate consequences.",
+            battle_headlines[
+                variant %
+                len(battle_headlines)
+            ],
             (
-                f"The confrontation began in {location} and continued "
-                f"for {duration}. Witnesses reported repeated impacts "
-                f"across the district. The fighters eventually left "
-                f"the immediate area, leaving emergency crews to "
-                f"assess the damage."
+                f"A timeline of the confrontation and "
+                f"its immediate consequences."
+            ),
+            (
+                f"The confrontation began in {location} and "
+                f"continued for {duration}. Witnesses reported "
+                f"repeated impacts across the district. The fighters "
+                f"eventually left the immediate area, leaving "
+                f"emergency crews to assess the damage."
             ),
             priority="HIGH",
             article_type="BATTLE REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 10
+            ),
         )
     )
 
-    # ========================================================
-    # 3 DAMAGE
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # DAMAGE VARIANTS
+    # --------------------------------------------------------
+
+    damage_headlines = [
+
+        f"{number(buildings)} buildings affected after battle",
+
+        f"Structural damage assessment begins across {location}",
+
+        f"Engineers inspect {number(buildings)} damaged buildings",
+
+        f"Battle leaves buildings across {location} awaiting inspection",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "DAMAGE",
-            f"{number(buildings)} buildings affected after {hero}-{villain} battle",
-            f"Structural inspections have begun across {location}.",
+            damage_headlines[
+                variant %
+                len(damage_headlines)
+            ],
             (
-                f"Officials say at least {number(buildings)} buildings "
-                f"have been damaged or otherwise affected. Engineers "
-                f"are inspecting structures before residents are allowed "
-                f"to return."
+                f"Structural inspections have begun across "
+                f"{location}."
+            ),
+            (
+                f"Officials say at least {number(buildings)} "
+                f"buildings have been damaged or otherwise affected. "
+                f"Engineers are inspecting structures before residents "
+                f"are allowed to return."
             ),
             priority="HIGH",
             article_type="DAMAGE REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 20
+            ),
         )
     )
 
-    # ========================================================
-    # 4 ROADS
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # ROADS
+    # --------------------------------------------------------
+
+    road_headlines = [
+
+        f"{number(roads)} roads affected following battle",
+
+        f"Road closures spread across {location}",
+
+        f"Engineers begin inspecting {number(roads)} damaged roads",
+
+        f"Drivers warned away from {location} after battle damage",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "TRANSPORT",
-            f"{number(roads)} roads affected following battle",
-            "Drivers are being warned to avoid the affected district.",
+            road_headlines[
+                variant %
+                len(road_headlines)
+            ],
+            (
+                "Drivers are being warned to avoid "
+                "the affected district."
+            ),
             (
                 f"At least {number(roads)} roads in and around "
                 f"{location} are affected. Officials have placed "
@@ -638,19 +1095,44 @@ def generate_articles(event):
                 f"intersections."
             ),
             article_type="TRANSPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 30
+            ),
         )
     )
 
-    # ========================================================
-    # 5 VEHICLES
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # VEHICLES
+    # --------------------------------------------------------
+
+    vehicle_headlines = [
+
+        f"{number(vehicles)} vehicles damaged in {location}",
+
+        f"Residents count vehicle losses after battle",
+
+        f"Parking areas become cleanup zones after confrontation",
+
+        f"Vehicle damage assessment expands across {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "TRANSPORT",
-            f"{number(vehicles)} vehicles damaged in {location}",
-            "Residents are reporting widespread vehicle damage.",
+            vehicle_headlines[
+                variant %
+                len(vehicle_headlines)
+            ],
+            (
+                "Residents are reporting widespread vehicle damage."
+            ),
             (
                 f"Emergency responders and residents have reported "
                 f"damage to approximately {number(vehicles)} vehicles. "
@@ -659,484 +1141,1292 @@ def generate_articles(event):
                 f"impacts."
             ),
             article_type="LOCAL REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 40
+            ),
         )
     )
 
-    # ========================================================
-    # 6 PUBLIC TRANSPORT
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # PUBLIC TRANSPORT
+    # --------------------------------------------------------
+
+    transit_headlines = [
+
+        f"{number(transport_routes)} public transport routes suspended",
+
+        f"Transit disruption continues across {location}",
+
+        f"Commuters face delays as {number(transport_routes)} routes close",
+
+        f"Bus and transit services rerouted after battle",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "TRANSPORT",
-            f"{number(transport_routes)} public transport routes suspended",
-            "Commuters face delays while infrastructure inspections continue.",
+            transit_headlines[
+                variant %
+                len(transit_headlines)
+            ],
+            (
+                "Commuters face delays while infrastructure "
+                "inspections continue."
+            ),
             (
                 f"Transit authorities have suspended "
-                f"{number(transport_routes)} routes serving {location}. "
-                f"Officials say services will resume after roads and "
-                f"stations are declared safe."
+                f"{number(transport_routes)} routes serving "
+                f"{location}. Officials say services will resume "
+                f"after roads and stations are declared safe."
             ),
             article_type="TRANSIT UPDATE",
+            published=make_publication_time(
+                base_time,
+                variant + 50
+            ),
         )
     )
 
-    # ========================================================
-    # 7 BUSINESS
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # BUSINESS
+    # --------------------------------------------------------
+
+    business_headlines = [
+
+        f"{number(businesses)} businesses affected by battle",
+
+        f"Local businesses count losses after {location} confrontation",
+
+        f"Shops and offices struggle to reopen after battle",
+
+        f"Business district faces uncertain recovery in {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "BUSINESS",
-            f"{number(businesses)} businesses affected by battle",
-            "Shop owners say the fight has created another unexpected business crisis.",
+            business_headlines[
+                variant %
+                len(business_headlines)
+            ],
             (
-                f"At least {number(businesses)} businesses have reported "
-                f"damage, closures or severe interruptions. Restaurants, "
-                f"retail stores, offices and independent businesses are "
-                f"among those affected."
+                "Shop owners say the fight has created another "
+                "unexpected business crisis."
+            ),
+            (
+                f"At least {number(businesses)} businesses have "
+                f"reported damage, closures or severe interruptions. "
+                f"Restaurants, retail stores, offices and independent "
+                f"businesses are among those affected."
             ),
             article_type="BUSINESS REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 60
+            ),
         )
     )
 
-    # ========================================================
-    # 8 EMPLOYMENT
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # EMPLOYMENT
+    # --------------------------------------------------------
+
+    employment_headlines = [
+
+        f"Workers struggle to reach jobs after {location} disruption",
+
+        "Employers adjust schedules after transport shutdown",
+
+        "Workers face another disrupted commute",
+
+        f"Businesses ask employees to work remotely in {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "EMPLOYMENT",
-            f"Workers struggle to reach jobs after {location} disruption",
-            "Thousands of employees face another day of disrupted commuting.",
+            employment_headlines[
+                variant %
+                len(employment_headlines)
+            ],
             (
-                f"Businesses say workers are having difficulty reaching "
-                f"their jobs because of damaged roads and suspended "
-                f"transport. Some employers have moved temporarily to "
-                f"remote operations where possible."
+                "Thousands of employees face disrupted commuting."
+            ),
+            (
+                f"Businesses say workers are having difficulty "
+                f"reaching their jobs because of damaged roads and "
+                f"suspended transport. Some employers have moved "
+                f"temporarily to remote operations where possible."
             ),
             article_type="LABOR REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 70
+            ),
         )
     )
 
-    # ========================================================
-    # 9 HOUSING
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # HOUSING
+    # --------------------------------------------------------
+
+    housing_headlines = [
+
+        f"{number(displaced)} residents temporarily displaced",
+
+        f"Families search for temporary housing in {location}",
+
+        "Apartment residents wait for structural inspections",
+
+        f"Displaced residents seek shelter after {location} battle",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "HOUSING",
-            f"{number(displaced)} residents temporarily displaced",
-            "Families are looking for temporary accommodation after the battle.",
+            housing_headlines[
+                variant %
+                len(housing_headlines)
+            ],
             (
-                f"Approximately {number(displaced)} residents have been "
-                f"temporarily displaced. Local shelters, relatives and "
-                f"nearby hotels are being used while structural inspections "
-                f"continue."
+                "Families are looking for temporary accommodation "
+                "after the battle."
+            ),
+            (
+                f"Approximately {number(displaced)} residents have "
+                f"been temporarily displaced. Local shelters, relatives "
+                f"and nearby hotels are being used while structural "
+                f"inspections continue."
             ),
             article_type="HOUSING REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 80
+            ),
         )
     )
 
-    # ========================================================
-    # 10 EDUCATION
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # EDUCATION
+    # --------------------------------------------------------
+
+    education_headlines = [
+
+        f"{number(schools)} schools affected by battle aftermath",
+
+        f"Classes disrupted across {location}",
+
+        f"Schools remain closed while damage is assessed",
+
+        f"Teachers and students face uncertain return date",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "EDUCATION",
-            f"{number(schools)} schools affected by the battle aftermath",
-            "Students and teachers face disrupted schedules.",
+            education_headlines[
+                variant %
+                len(education_headlines)
+            ],
             (
-                f"{number(schools)} schools in the wider {location} area "
-                f"have suspended classes or changed schedules. Officials "
-                f"say the decision is intended to keep students away from "
-                f"damaged infrastructure."
+                "Students and teachers face disrupted schedules."
+            ),
+            (
+                f"{number(schools)} schools in the wider {location} "
+                f"area have suspended classes or changed schedules. "
+                f"Officials say the decision is intended to keep "
+                f"students away from damaged infrastructure."
             ),
             article_type="EDUCATION",
+            published=make_publication_time(
+                base_time,
+                variant + 90
+            ),
         )
     )
 
-    # ========================================================
-    # 11 HEALTH
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # HEALTH
+    # --------------------------------------------------------
+
+    health_headlines = [
+
+        f"{number(hospitals)} hospitals affected by emergency response",
+
+        f"Medical facilities activate emergency procedures",
+
+        f"Hospitals prepare for continued post-battle demand",
+
+        f"Emergency medical network stretched across {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "HEALTH",
-            f"{number(hospitals)} hospitals affected by emergency response",
-            "Medical facilities activate emergency procedures.",
+            health_headlines[
+                variant %
+                len(health_headlines)
+            ],
             (
-                f"{number(hospitals)} medical facilities have activated "
-                f"emergency procedures following the incident. Hospitals "
-                f"are treating injuries while attempting to maintain "
-                f"normal care for patients already receiving treatment."
+                "Medical facilities activate emergency procedures."
+            ),
+            (
+                f"{number(hospitals)} medical facilities have "
+                f"activated emergency procedures following the "
+                f"incident. Hospitals are treating injuries while "
+                f"attempting to maintain normal care for patients "
+                f"already receiving treatment."
             ),
             article_type="HEALTH REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 100
+            ),
         )
     )
 
-    # ========================================================
-    # 12 INJURIES
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # INJURIES
+    # --------------------------------------------------------
+
+    injury_headlines = [
+
+        f"{number(injuries)} injuries reported after {location} battle",
+
+        f"Medical teams assess {number(injuries)} reported injuries",
+
+        "Hospitals continue treating battle-related injuries",
+
+        f"Injury count rises as hospitals complete assessments",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "HEALTH",
-            f"{number(injuries)} injuries reported after {location} battle",
-            "Medical teams continue to assess residents and responders.",
+            injury_headlines[
+                variant %
+                len(injury_headlines)
+            ],
+            (
+                "Medical teams continue to assess residents "
+                "and responders."
+            ),
             (
                 f"Officials have reported approximately "
-                f"{number(injuries)} injuries associated with the "
-                f"incident. The figure may change as hospitals "
+                f"{number(injuries)} injuries associated with "
+                f"the incident. The figure may change as hospitals "
                 f"complete their assessments."
             ),
             priority="HIGH",
             article_type="CASUALTY UPDATE",
+            published=make_publication_time(
+                base_time,
+                variant + 110
+            ),
         )
     )
 
-    # ========================================================
-    # 13 MISSING
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # MISSING PERSONS
+    # --------------------------------------------------------
+
+    missing_headlines = [
+
+        f"{number(missing)} people reported missing after battle",
+
+        f"Families await news of {number(missing)} missing people",
+
+        f"Search teams continue looking for missing residents",
+
+        f"Missing-person search expands across {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "PUBLIC SAFETY",
-            f"{number(missing)} people reported missing after battle",
-            "Families are waiting for information as search teams enter damaged areas.",
+            missing_headlines[
+                variant %
+                len(missing_headlines)
+            ],
             (
-                f"Authorities say {number(missing)} people have been "
-                f"reported missing. Search and rescue teams are checking "
-                f"damaged buildings and surrounding areas."
+                "Families are waiting for information as "
+                "search teams enter damaged areas."
+            ),
+            (
+                f"Authorities say {number(missing)} people have "
+                f"been reported missing. Search and rescue teams "
+                f"are checking damaged buildings and surrounding areas."
             ),
             priority="HIGH",
             article_type="PUBLIC SAFETY",
+            published=make_publication_time(
+                base_time,
+                variant + 120
+            ),
         )
     )
 
-    # ========================================================
-    # 14 UTILITIES
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # UTILITIES
+    # --------------------------------------------------------
+
+    utility_headlines = [
+
+        f"Utility services disrupted across parts of {location}",
+
+        f"Utility crews inspect damaged infrastructure",
+
+        f"Residents warned of continued service interruptions",
+
+        f"Power and water systems undergo emergency inspections",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "UTILITIES",
-            f"Utility services disrupted across parts of {location}",
+            utility_headlines[
+                variant %
+                len(utility_headlines)
+            ],
             utilities,
             (
                 f"Utility crews are inspecting infrastructure after "
-                f"the battle. {utilities.capitalize()}. Residents are "
-                f"being advised to prepare for temporary interruptions."
+                f"the battle. {utilities.capitalize()}. Residents "
+                f"are being advised to prepare for temporary "
+                f"interruptions."
             ),
             article_type="UTILITY UPDATE",
+            published=make_publication_time(
+                base_time,
+                variant + 130
+            ),
         )
     )
 
-    # ========================================================
-    # 15 NPC LIFE
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # NPC LIFE
+    # --------------------------------------------------------
+
+    npc_headlines = [
+
+        f"Food deliveries delayed across {location}",
+
+        f"Residents adjust daily routines after battle",
+
+        f"Everyday life remains disrupted across {location}",
+
+        f"Local families adapt to post-battle restrictions",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "NPC LIFE",
-            f"Food deliveries delayed across {location}",
-            "Restaurants and grocery stores report supply problems.",
+            npc_headlines[
+                variant %
+                len(npc_headlines)
+            ],
             (
-                f"Damage to roads and transport infrastructure is "
-                f"delaying food deliveries across {location}. "
-                f"Restaurants are reporting late shipments while "
-                f"grocery stores are checking alternative supply routes."
+                "Ordinary residents are dealing with "
+                "the practical aftermath."
+            ),
+            (
+                f"{choose(NPC_REACTIONS)} "
+                f"Damage to roads and transport infrastructure "
+                f"is delaying normal activities across {location}. "
+                f"Restaurants, grocery stores and families are "
+                f"adjusting their routines."
             ),
             article_type="DAILY LIFE",
+            published=make_publication_time(
+                base_time,
+                variant + 140
+            ),
         )
     )
 
-    # ========================================================
-    # 16 ECONOMY
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # ECONOMY
+    # --------------------------------------------------------
+
+    economy_headlines = [
+
+        f"Battle damage could cost {money(economic_loss)}",
+
+        f"Economic losses from {location} battle reach {money(economic_loss)}",
+
+        f"Officials begin calculating {money(economic_loss)} recovery bill",
+
+        f"Business disruption adds to {money(economic_loss)} damage estimate",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "ECONOMY",
-            f"Battle damage could cost {money(economic_loss)}",
-            "Local officials begin calculating the financial consequences.",
+            economy_headlines[
+                variant %
+                len(economy_headlines)
+            ],
             (
-                f"Preliminary estimates place the economic impact at "
-                f"around {money(economic_loss)}. The estimate includes "
-                f"infrastructure, business interruption, vehicle damage "
-                f"and emergency response."
+                "Local officials begin calculating the "
+                "financial consequences."
+            ),
+            (
+                f"Preliminary estimates place the economic impact "
+                f"at around {money(economic_loss)}. The estimate "
+                f"includes infrastructure, business interruption, "
+                f"vehicle damage and emergency response."
             ),
             priority="HIGH",
             article_type="ECONOMIC REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 150
+            ),
         )
     )
 
-    # ========================================================
-    # 17 INSURANCE
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # INSURANCE
+    # --------------------------------------------------------
+
+    insurance_headlines = [
+
+        f"Insurance offices prepare for surge in {location} claims",
+
+        "Property owners begin documenting battle damage",
+
+        "Insurers prepare for wave of vehicle and property claims",
+
+        f"Residents ask insurers how to report battle damage",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "ECONOMY",
-            f"Insurance offices prepare for surge in {location} claims",
-            "Property owners begin documenting battle-related damage.",
+            insurance_headlines[
+                variant %
+                len(insurance_headlines)
+            ],
             (
-                f"Insurance companies are preparing for a large number "
-                f"of property and vehicle claims. Residents are being "
-                f"advised to document visible damage and retain repair "
-                f"records."
+                "Property owners begin documenting "
+                "battle-related damage."
+            ),
+            (
+                f"Insurance companies are preparing for a large "
+                f"number of property and vehicle claims. Residents "
+                f"are being advised to document visible damage and "
+                f"retain repair records."
             ),
             article_type="INSURANCE",
+            published=make_publication_time(
+                base_time,
+                variant + 160
+            ),
         )
     )
 
-    # ========================================================
-    # 18 GOVERNMENT
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # GOVERNMENT
+    # --------------------------------------------------------
+
+    government_headlines = [
+
+        f"Officials announce emergency response for {location}",
+
+        f"Authorities establish recovery operation in {location}",
+
+        "Government teams begin coordinating post-battle repairs",
+
+        f"Emergency restrictions announced across {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "GOVERNMENT",
-            f"Officials announce emergency response for {location}",
-            "Authorities establish temporary measures following the battle.",
+            government_headlines[
+                variant %
+                len(government_headlines)
+            ],
             (
-                f"Local authorities have established an emergency response "
-                f"operation covering transportation, housing, public safety "
-                f"and infrastructure. Officials say repairs will begin "
-                f"once damaged areas are declared safe."
+                "Authorities establish temporary measures "
+                "following the battle."
+            ),
+            (
+                f"Local authorities have established an emergency "
+                f"response operation covering transportation, housing, "
+                f"public safety and infrastructure. Officials say "
+                f"repairs will begin once damaged areas are declared safe."
             ),
             article_type="GOVERNMENT",
+            published=make_publication_time(
+                base_time,
+                variant + 170
+            ),
         )
     )
 
-    # ========================================================
-    # 19 NPC INTERVIEW
-    # ========================================================
 
-    quote = choose(
-        event.get(
-            "npc_quotes",
-            [
-                "My apartment is still standing. The street is not.",
-                "The heroes left. We still have work tomorrow.",
-                "Nobody asked whether our shop could survive another battle.",
-                "I just want the bus to run again.",
-            ],
-        )
-    )
+    # --------------------------------------------------------
+    # NPC INTERVIEW
+    # --------------------------------------------------------
 
-    articles.append(
+    interview_headlines = [
+
+        "Residents ask a simple question: Who pays for all this?",
+
+        f"Inside {location}: Residents describe life after the battle",
+
+        "The heroes left. The residents stayed.",
+
+        "What the battle looks like from street level",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "NPC LIFE",
-            "Residents ask a simple question: Who pays for all this?",
-            "Ordinary residents describe life after another superpowered confrontation.",
+            interview_headlines[
+                variant %
+                len(interview_headlines)
+            ],
             (
-                f"Residents of {location} say the aftermath is becoming "
-                f"as important as the battle itself. One resident told "
-                f"NPC News: \"{quote}\""
+                "Ordinary residents describe life after "
+                "another superpowered confrontation."
+            ),
+            (
+                f"Residents of {location} say the aftermath is "
+                f"becoming as important as the battle itself. "
+                f"One resident told NPC News: \"{quote}\""
             ),
             article_type="NPC INTERVIEW",
+            published=make_publication_time(
+                base_time,
+                variant + 180
+            ),
         )
     )
 
-    # ========================================================
-    # 20 SOCIAL
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # SOCIAL
+    # --------------------------------------------------------
+
+    social_headlines = [
+
+        f"Social media fills with reactions to {location} battle",
+
+        f"Residents post photos and complaints after battle",
+
+        f"{location} becomes centre of online discussion",
+
+        "Videos, photographs and complaints flood social networks",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "SOCIAL",
-            f"Social media fills with reactions to {location} battle",
-            "Residents share photographs, complaints and survival stories online.",
+            social_headlines[
+                variant %
+                len(social_headlines)
+            ],
             (
-                f"Social media platforms have filled with posts from "
-                f"residents of {location}. Posts range from videos of "
-                f"the confrontation to complaints about traffic, housing, "
-                f"electricity and business closures."
+                "Residents share photographs, complaints "
+                "and survival stories online."
+            ),
+            (
+                f"Social media platforms have filled with posts "
+                f"from residents of {location}. Posts range from "
+                f"videos of the confrontation to complaints about "
+                f"traffic, housing, electricity and business closures."
             ),
             article_type="SOCIAL MEDIA",
+            published=make_publication_time(
+                base_time,
+                variant + 190
+            ),
         )
     )
 
-    # ========================================================
-    # 21 EMERGENCY SERVICES
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # EMERGENCY SERVICES
+    # --------------------------------------------------------
+
+    emergency_headlines = [
+
+        f"Emergency crews remain deployed across {location}",
+
+        f"Rescue teams continue operations after battle",
+
+        f"Firefighters and rescue crews work through damaged district",
+
+        "Emergency services enter second phase of response",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "PUBLIC SAFETY",
-            f"Emergency crews remain deployed across {location}",
-            "Firefighters, rescue teams and utility workers continue operations.",
+            emergency_headlines[
+                variant %
+                len(emergency_headlines)
+            ],
             (
-                f"Emergency crews remain active throughout the affected "
-                f"area. Teams are checking buildings, clearing debris "
-                f"and assisting residents who cannot safely return home."
+                "Firefighters, rescue teams and utility workers "
+                "continue operations."
+            ),
+            (
+                f"Emergency crews remain active throughout the "
+                f"affected area. Teams are checking buildings, "
+                f"clearing debris and assisting residents who "
+                f"cannot safely return home."
             ),
             article_type="EMERGENCY SERVICES",
+            published=make_publication_time(
+                base_time,
+                variant + 200
+            ),
         )
     )
 
-    # ========================================================
-    # 22 ENVIRONMENT
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # ENVIRONMENT
+    # --------------------------------------------------------
+
+    environment_headlines = [
+
+        f"Battle leaves environmental damage across {location}",
+
+        f"Environmental teams inspect aftermath in {location}",
+
+        "Officials check air and water systems after confrontation",
+
+        f"Cleanup teams assess environmental impact of battle",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "ENVIRONMENT",
-            f"Battle leaves environmental damage across {location}",
-            "Officials inspect air, water and surrounding infrastructure.",
+            environment_headlines[
+                variant %
+                len(environment_headlines)
+            ],
             (
-                f"Environmental teams are inspecting the area for dust, "
-                f"chemical leaks, damaged water systems and other secondary "
-                f"effects associated with the confrontation."
+                "Officials inspect air, water and surrounding "
+                "infrastructure."
+            ),
+            (
+                f"Environmental teams are inspecting the area for "
+                f"dust, chemical leaks, damaged water systems and "
+                f"other secondary effects associated with the "
+                f"confrontation."
             ),
             article_type="ENVIRONMENT",
+            published=make_publication_time(
+                base_time,
+                variant + 210
+            ),
         )
     )
 
-    # ========================================================
-    # 23 RECONSTRUCTION
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # RECONSTRUCTION
+    # --------------------------------------------------------
+
+    reconstruction_headlines = [
+
+        f"Reconstruction begins as {location} counts its losses",
+
+        f"Repair crews begin rebuilding damaged areas",
+
+        f"{location} enters first phase of reconstruction",
+
+        "Crews begin restoring roads, buildings and utilities",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "RECONSTRUCTION",
-            f"Reconstruction begins as {location} counts its losses",
-            "Repair crews begin the long process of restoring normal life.",
+            reconstruction_headlines[
+                variant %
+                len(reconstruction_headlines)
+            ],
+            (
+                "Repair crews begin the long process "
+                "of restoring normal life."
+            ),
             (
                 f"Repair crews are beginning preliminary work across "
-                f"{location}. The first priorities include roads, utilities, "
-                f"emergency facilities and buildings considered critical "
-                f"to daily life."
+                f"{location}. The first priorities include roads, "
+                f"utilities, emergency facilities and buildings "
+                f"considered critical to daily life."
             ),
             article_type="RECONSTRUCTION",
+            published=make_publication_time(
+                base_time,
+                variant + 220
+            ),
         )
     )
 
-    # ========================================================
-    # 24 ANALYSIS
-    # ========================================================
 
-    articles.append(
+    # --------------------------------------------------------
+    # LONG TERM
+    # --------------------------------------------------------
+
+    long_term_headlines = [
+
+        f"What happens to {location} after the heroes leave?",
+
+        f"How long will {location} take to recover?",
+
+        "The battle lasted minutes. The recovery may take months.",
+
+        f"The long road back for residents of {location}",
+
+    ]
+
+
+    add_article(
+        articles,
+        seen,
         make_article(
             event,
             "ANALYSIS",
-            f"What happens to {location} after the heroes leave?",
-            "The battle may have lasted minutes. The recovery could take months.",
+            long_term_headlines[
+                variant %
+                len(long_term_headlines)
+            ],
             (
-                f"The confrontation itself lasted {duration}, but the "
-                f"effects will likely remain much longer. Residents now "
-                f"face repairs, transport problems, temporary displacement "
-                f"and economic disruption."
+                "The battle may have lasted minutes. "
+                "The recovery could take months."
+            ),
+            (
+                f"The confrontation itself lasted {duration}, "
+                f"but the effects will likely remain much longer. "
+                f"Residents now face repairs, transport problems, "
+                f"temporary displacement and economic disruption."
             ),
             article_type="LONG-TERM REPORT",
+            published=make_publication_time(
+                base_time,
+                variant + 230
+            ),
         )
     )
 
-    # ========================================================
-    # 25 MINOR LOCAL STORIES
-    # ========================================================
-
-    minor_stories = [
-        (
-            "LOCAL",
-            f"Coffee shop reopens with limited menu in {location}",
-            "A local café has reopened despite continuing infrastructure problems.",
-        ),
-        (
-            "LOCAL",
-            "Residents form neighborhood cleanup group",
-            "Volunteers have begun clearing smaller debris from residential streets.",
-        ),
-        (
-            "LOCAL",
-            "Taxi drivers create temporary route around damaged roads",
-            "Local drivers are using alternative roads to keep residents moving.",
-        ),
-        (
-            "LOCAL",
-            "Apartment residents return after structural inspection",
-            "Some residents have been allowed to return to inspected buildings.",
-        ),
-        (
-            "LOCAL",
-            "Local supermarket reports unusually high demand",
-            "Residents are stocking essential supplies while transport remains disrupted.",
-        ),
-        (
-            "LOCAL",
-            "Street vendors relocate during reconstruction",
-            "Small vendors have moved to nearby streets while repairs continue.",
-        ),
-        (
-            "LOCAL",
-            "Office workers told to work remotely",
-            "Several employers have temporarily changed working arrangements.",
-        ),
-        (
-            "LOCAL",
-            "Residents complain about debris collection delays",
-            "Cleanup crews are working through multiple damaged areas.",
-        ),
-    ]
-
-    for category, headline, summary in minor_stories:
-
-        articles.append(
-            make_article(
-                event,
-                category,
-                headline,
-                summary,
-                (
-                    f"Residents in {location} are adjusting to "
-                    f"another small but significant consequence of "
-                    f"the confrontation. Local services continue "
-                    f"operating under unusual conditions."
-                ),
-                article_type="MINOR NEWS",
-            )
-        )
 
     return articles
 
 
 # ============================================================
-# BUILD COMPLETE EVENT OBJECT
+# MINOR LOCAL NEWS
+# ============================================================
+
+def generate_minor_stories(
+    event,
+    base_time
+):
+
+    location = event["location"]
+
+    minor_templates = [
+
+        (
+            "LOCAL",
+            f"Coffee shop reopens with limited menu in {location}",
+            "A local café has reopened despite continuing infrastructure problems.",
+            "Coffee service has resumed, although deliveries remain limited."
+        ),
+
+        (
+            "LOCAL",
+            f"Residents form neighborhood cleanup group in {location}",
+            "Volunteers have begun clearing smaller debris from residential streets.",
+            "Residents say they decided to organise rather than wait for every cleanup crew to arrive."
+        ),
+
+        (
+            "LOCAL",
+            "Taxi drivers create temporary route around damaged roads",
+            "Local drivers are using alternative roads to keep residents moving.",
+            "Drivers say the temporary route is slower but currently more reliable."
+        ),
+
+        (
+            "LOCAL",
+            "Apartment residents return after structural inspection",
+            "Some residents have been allowed to return to inspected buildings.",
+            "Families are returning gradually as engineers clear individual buildings."
+        ),
+
+        (
+            "LOCAL",
+            "Local supermarket reports unusually high demand",
+            "Residents are stocking essential supplies while transport remains disrupted.",
+            "Store workers say basic household items are moving faster than usual."
+        ),
+
+        (
+            "LOCAL",
+            "Street vendors relocate during reconstruction",
+            "Small vendors have moved to nearby streets while repairs continue.",
+            "Several vendors say they are trying to remain close to their regular customers."
+        ),
+
+        (
+            "LOCAL",
+            "Office workers told to work remotely",
+            "Several employers have temporarily changed working arrangements.",
+            "Companies say remote work will continue while transport problems remain."
+        ),
+
+        (
+            "LOCAL",
+            "Residents complain about debris collection delays",
+            "Cleanup crews are working through multiple damaged areas.",
+            "Residents say some smaller streets are still waiting for cleanup teams."
+        ),
+
+        (
+            "COMMUNITY",
+            f"Residents organise food-sharing network in {location}",
+            "Neighbours are helping families affected by temporary disruption.",
+            "Community groups are collecting meals and essential supplies."
+        ),
+
+        (
+            "COMMUNITY",
+            "Local residents open temporary charging station",
+            "A neighbourhood group has created a small charging point for residents.",
+            "The service is intended for people dealing with utility interruptions."
+        ),
+
+        (
+            "COMMUNITY",
+            "Volunteers begin checking on elderly residents",
+            "Community volunteers are visiting residents who may need assistance.",
+            "The effort focuses on people living alone or without transport."
+        ),
+
+        (
+            "LOCAL",
+            "Corner bakery changes opening hours after battle",
+            "A neighbourhood bakery has adjusted its schedule because of deliveries.",
+            "The owner says the shop will remain open as long as supplies arrive."
+        ),
+
+        (
+            "TRANSPORT",
+            f"Morning traffic remains slow around {location}",
+            "Commuters report delays on alternative routes.",
+            "Drivers are using side roads while major routes remain under inspection."
+        ),
+
+        (
+            "TRANSPORT",
+            "Ride-share prices fluctuate as routes change",
+            "Passengers report changing travel times across the affected district.",
+            "Drivers say route restrictions are making journeys longer."
+        ),
+
+        (
+            "HOUSING",
+            "Residents compare temporary accommodation options",
+            "Displaced families are looking for affordable places to stay.",
+            "Local accommodation providers say demand has increased."
+        ),
+
+        (
+            "HOUSING",
+            "Landlords begin checking buildings after battle",
+            "Property owners are arranging inspections before reopening damaged units.",
+            "Residents are waiting for clearance before returning."
+        ),
+
+        (
+            "BUSINESS",
+            "Small businesses create shared delivery network",
+            "Local shop owners are cooperating to keep deliveries moving.",
+            "Businesses say cooperation is helping them operate despite transport problems."
+        ),
+
+        (
+            "BUSINESS",
+            "Restaurant owners switch to smaller menus",
+            "Some restaurants are reducing menu choices because supplies are difficult to obtain.",
+            "Owners say the changes should be temporary."
+        ),
+
+        (
+            "BUSINESS",
+            "Repair shops report sudden increase in customers",
+            "Vehicle and property repair businesses are seeing unusual demand.",
+            "Some repair shops are extending operating hours."
+        ),
+
+        (
+            "HEALTH",
+            "Local clinics extend operating hours",
+            "Medical staff are adjusting schedules following the incident.",
+            "Clinics say extended hours are intended to reduce pressure on larger hospitals."
+        ),
+
+        (
+            "HEALTH",
+            "Pharmacies report increased demand for basic supplies",
+            "Local pharmacies are seeing more residents than usual.",
+            "Some stores are arranging additional deliveries."
+        ),
+
+        (
+            "UTILITIES",
+            "Utility workers inspect residential connections",
+            "Crews continue checking damaged local infrastructure.",
+            "Residents are being asked to report visible problems."
+        ),
+
+        (
+            "EDUCATION",
+            "Teachers prepare temporary lessons for affected students",
+            "Schools are adapting while normal schedules remain disrupted.",
+            "Teachers are sharing assignments through temporary arrangements."
+        ),
+
+        (
+            "SOCIAL",
+            "Residents create online map of damaged streets",
+            "A community project is helping residents identify difficult routes.",
+            "The map is being updated as roads reopen."
+        ),
+
+        (
+            "LOCAL",
+            "Local hardware stores run short of repair supplies",
+            "Residents and repair crews are buying essential materials.",
+            "Store owners say deliveries are being reordered as quickly as possible."
+        ),
+
+        (
+            "LOCAL",
+            "Neighbourhood restaurants offer reduced-price meals",
+            "Some businesses are offering cheaper meals to affected residents.",
+            "Owners say the programme will continue while supplies permit."
+        ),
+
+        (
+            "COMMUNITY",
+            "Residents set up temporary information desk",
+            "Volunteers are helping people find information about services and routes.",
+            "The desk is operating near a busy public area."
+        ),
+
+        (
+            "LOCAL",
+            "Cleanup crews discover more minor damage",
+            "Workers are finding additional small-scale damage during cleanup.",
+            "Officials say the overall assessment remains ongoing."
+        ),
+
+    ]
+
+
+    random.shuffle(
+        minor_templates
+    )
+
+
+    articles = []
+
+    selected =
+        minor_templates[
+            :min(
+                MINOR_STORIES_PER_EVENT,
+                len(minor_templates)
+            )
+        ]
+
+
+    for index, item in enumerate(
+        selected
+    ):
+
+        category, headline, summary, extra =
+            item
+
+        body = (
+
+            f"Residents in {location} are adjusting to "
+            f"another consequence of the confrontation. "
+            f"{extra} {choose(NPC_REACTIONS)}"
+        )
+
+
+        articles.append(
+
+            make_article(
+
+                event,
+
+                category,
+
+                headline,
+
+                summary,
+
+                body,
+
+                article_type="MINOR NEWS",
+
+                published=make_publication_time(
+                    base_time,
+                    300 + index
+                ),
+
+            )
+        )
+
+
+    return articles
+
+
+# ============================================================
+# GENERATE ALL ARTICLES FOR EVENT
+# ============================================================
+
+def generate_articles(
+    event,
+    base_time
+):
+
+    articles = []
+
+    /*
+    This generator intentionally creates several different
+    versions of the same news categories. The underlying event
+    remains identical, while the newsroom has more headlines
+    to choose from.
+    */
+
+    for variant in range(
+        VARIANTS_PER_EVENT
+    ):
+
+        articles.extend(
+            generate_main_variants(
+                event,
+                variant,
+                base_time
+            )
+        )
+
+
+    articles.extend(
+        generate_minor_stories(
+            event,
+            base_time
+        )
+    )
+
+
+    return articles
+
+
+# ============================================================
+# PREPARE EVENT
 # ============================================================
 
 def prepare_event(event):
 
     event = dict(event)
 
-    event["timeline"] = build_timeline(event)
+    event["timeline"] =
+        build_timeline(event)
 
-    event["overview"] = build_overview(event)
+    event["overview"] =
+        build_overview(event)
 
-    event["battle_report"] = build_battle_report(event)
+    event["battle_report"] =
+        build_battle_report(event)
 
-    event["aftermath"] = build_aftermath(event)
+    event["aftermath"] =
+        build_aftermath(event)
+
+    battle_paragraphs =
+        event["battle_report"].get(
+            "paragraphs",
+            []
+        )
+
+    event["battle_summary"] =
+        " ".join(
+            battle_paragraphs
+        )
 
     return event
+
+
+# ============================================================
+# DEDUPLICATE ARTICLES
+# ============================================================
+
+def deduplicate_articles(
+    articles
+):
+
+    seen_ids = set()
+
+    seen_headlines = set()
+
+    result = []
+
+
+    for article in articles:
+
+        article_id =
+            article.get(
+                "id"
+            )
+
+        headline =
+            str(
+                article.get(
+                    "headline",
+                    ""
+                )
+            ).strip().lower()
+
+
+        if not article_id:
+            continue
+
+
+        if article_id in seen_ids:
+            continue
+
+
+        if headline in seen_headlines:
+            continue
+
+
+        seen_ids.add(
+            article_id
+        )
+
+        seen_headlines.add(
+            headline
+        )
+
+        result.append(
+            article
+        )
+
+
+    return result
 
 
 # ============================================================
@@ -1147,11 +2437,14 @@ def generate():
 
     ensure_directories()
 
-    events = load_events()
+    events =
+        load_events()
+
 
     prepared_events = []
 
     all_articles = []
+
 
     # --------------------------------------------------------
     # PREPARE EVENTS
@@ -1159,33 +2452,98 @@ def generate():
 
     for event in events:
 
-        validate_event(event)
+        validate_event(
+            event
+        )
 
-        prepared_event = prepare_event(event)
+        prepared_event =
+            prepare_event(
+                event
+            )
 
         prepared_events.append(
             prepared_event
         )
 
+
+    # --------------------------------------------------------
+    # BASE NEWSROOM TIME
+    # --------------------------------------------------------
+
+    now =
+        datetime.now()
+
+
     # --------------------------------------------------------
     # GENERATE ARTICLES
     # --------------------------------------------------------
 
-    for event in prepared_events:
+    for event_index, event in enumerate(
+        prepared_events
+    ):
 
-        articles = generate_articles(event)
+        event_base_time =
+            now - timedelta(
+                minutes=random.randint(
+                    0,
+                    180
+                )
+            )
+
+
+        articles =
+            generate_articles(
+                event,
+                event_base_time
+            )
+
 
         all_articles.extend(
             articles
         )
 
+
     # --------------------------------------------------------
-    # RANDOMISE ARTICLE ORDER
+    # REMOVE DUPLICATES
+    # --------------------------------------------------------
+
+    all_articles =
+        deduplicate_articles(
+            all_articles
+        )
+
+
+    # --------------------------------------------------------
+    # RANDOMISE NEWSROOM
     # --------------------------------------------------------
 
     random.shuffle(
         all_articles
     )
+
+
+    # --------------------------------------------------------
+    # CALCULATE NPC TOTAL
+    # --------------------------------------------------------
+
+    total_npc_affected = sum(
+
+        int(
+            event
+            .get(
+                "damage",
+                {}
+            )
+            .get(
+                "npc_affected",
+                0
+            )
+        )
+
+        for event in prepared_events
+
+    )
+
 
     # --------------------------------------------------------
     # BUILD OUTPUT
@@ -1213,23 +2571,40 @@ def generate():
             "event_count":
                 len(prepared_events),
 
+            "npc_affected":
+                total_npc_affected,
+
+            "generation_mode":
+                "ROTATING FICTIONAL NEWSROOM",
+
         },
 
-        # IMPORTANT:
-        # The complete events are now included.
+
+        # ----------------------------------------------------
+        # COMPLETE INCIDENT DATA
+        # ----------------------------------------------------
+
         "events":
             prepared_events,
 
-        # All individual reports.
+
+        # ----------------------------------------------------
+        # ALL NEWS ARTICLES
+        # ----------------------------------------------------
+
         "articles":
             all_articles,
+
     }
+
 
     # --------------------------------------------------------
     # WRITE NEWS.JSON
     # --------------------------------------------------------
 
-    output_file = DIST_DIR / "news.json"
+    output_file =
+        DIST_DIR / "news.json"
+
 
     with output_file.open(
         "w",
@@ -1243,19 +2618,25 @@ def generate():
             ensure_ascii=False
         )
 
+
     # --------------------------------------------------------
     # COPY STATIC FILES
     # --------------------------------------------------------
 
     for filename in [
+
         "index.html",
         "styles.css",
         "app.js",
+
     ]:
 
-        source = STATIC_DIR / filename
+        source =
+            STATIC_DIR / filename
 
-        destination = DIST_DIR / filename
+        destination =
+            DIST_DIR / filename
+
 
         if source.exists():
 
@@ -1274,14 +2655,24 @@ def generate():
                 f"WARNING: Missing static file: {filename}"
             )
 
+
     # --------------------------------------------------------
     # REPORT
     # --------------------------------------------------------
 
     print()
-    print("=" * 60)
-    print("NPC NEWS GENERATOR")
-    print("=" * 60)
+
+    print(
+        "=" * 70
+    )
+
+    print(
+        "NPC NEWS GENERATOR"
+    )
+
+    print(
+        "=" * 70
+    )
 
     print(
         f"Events generated : {len(prepared_events)}"
@@ -1292,6 +2683,10 @@ def generate():
     )
 
     print(
+        f"NPCs affected    : {indian_number(total_npc_affected)}"
+    )
+
+    print(
         f"Output directory : {DIST_DIR}"
     )
 
@@ -1299,11 +2694,34 @@ def generate():
         f"News file        : {output_file}"
     )
 
-    print("=" * 60)
+    print(
+        "=" * 70
+    )
+
     print()
 
     print(
-        "SUCCESS: Complete event data has been included in news.json."
+        "SUCCESS: NPC NEWS newsroom generated."
+    )
+
+    print(
+        "Complete event data included."
+    )
+
+    print(
+        "Articles contain full incident references."
+    )
+
+    print(
+        "Multiple headline variants generated."
+    )
+
+    print(
+        "Minor local news generated."
+    )
+
+    print(
+        "Indian currency formatting enabled."
     )
 
 
@@ -1312,4 +2730,5 @@ def generate():
 # ============================================================
 
 if __name__ == "__main__":
+
     generate()
