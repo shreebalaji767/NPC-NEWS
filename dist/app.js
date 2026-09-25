@@ -1,241 +1,186 @@
-/* ============================================================
-   NPC NEWS — MAIN APPLICATION
-   COMPLETE REPLACEMENT
-   ============================================================ */
+"use strict";
 
-let allArticles = [];
-let allEvents = [];
+/* =========================================================
+   NPC NEWS
+   MAIN APPLICATION
+========================================================= */
 
-let currentArticle = null;
-let currentEvent = null;
+let NEWS = {
+    site: {},
+    events: [],
+    articles: []
+};
 
+let ALL_EVENTS = [];
+let ALL_ARTICLES = [];
 
-/* ============================================================
-   START APPLICATION
-   ============================================================ */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    setCurrentDate();
-
-    setupNavigation();
-    setupBackButton();
-    setupNewLeadButton();
-
-    document.addEventListener("click", handleGlobalArticleClick);
-
-    window.addEventListener("hashchange", handleHash);
-
-    loadNews();
-
-});
+let currentView = "ALL";
+let currentEventId = null;
+let currentArticleId = null;
 
 
-/* ============================================================
-   LOAD NEWS
-   ============================================================ */
+/* =========================================================
+   DOM
+========================================================= */
 
-async function loadNews() {
+const homepage = document.getElementById("homepage");
+const incidentPage = document.getElementById("incidentPage");
 
-    try {
+const currentDate = document.getElementById("currentDate");
 
-        const response = await fetch(
-            "news.json?cache=" + Date.now()
-        );
+const eventCount = document.getElementById("eventCount");
+const articleCount = document.getElementById("articleCount");
+const npcCount = document.getElementById("npcCount");
 
-        if (!response.ok) {
-            throw new Error(
-                "Could not load news.json"
-            );
+const leadCategory = document.getElementById("leadCategory");
+const leadHeadline = document.getElementById("leadHeadline");
+const leadSummary = document.getElementById("leadSummary");
+const leadMeta = document.getElementById("leadMeta");
+const leadBody = document.getElementById("leadBody");
+
+const latestNews = document.getElementById("latestNews");
+const newsGrid = document.getElementById("newsGrid");
+
+const npcNews = document.getElementById("npcNews");
+const businessNews = document.getElementById("businessNews");
+const transportNews = document.getElementById("transportNews");
+
+const worldNews = document.getElementById("worldNews");
+
+const breakingTicker = document.getElementById("breakingTicker");
+
+const newLead = document.getElementById("newLead");
+const backButton = document.getElementById("backButton");
+
+
+/* =========================================================
+   DATE
+========================================================= */
+
+function updateDate() {
+
+    if (!currentDate) return;
+
+    const now = new Date();
+
+    currentDate.textContent = now.toLocaleDateString(
+        "en-IN",
+        {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric"
         }
-
-        const data = await response.json();
-
-        /*
-         Supported format:
-
-         {
-             "site": {},
-             "events": [],
-             "articles": []
-         }
-
-         Also supports:
-
-         [
-             events...
-         ]
-
-         or old article-only data.
-        */
-
-        if (Array.isArray(data)) {
-
-            /*
-             Determine whether the array contains
-             events or articles.
-            */
-
-            if (
-                data.length &&
-                (
-                    data[0].damage ||
-                    data[0].consequences ||
-                    data[0].characters
-                )
-            ) {
-
-                allEvents = data;
-
-                allArticles =
-                    createArticlesFromEvents(
-                        allEvents
-                    );
-
-            } else {
-
-                allArticles = data;
-
-                allEvents =
-                    createEventsFromArticles();
-
-            }
-
-        } else {
-
-            allEvents =
-                Array.isArray(data.events)
-                    ? data.events
-                    : [];
-
-            allArticles =
-                Array.isArray(data.articles)
-                    ? data.articles
-                    : [];
-
-        }
-
-
-        /*
-         Normalize everything before rendering.
-        */
-
-        allEvents =
-            allEvents
-                .filter(Boolean)
-                .map(normalizeEvent);
-
-
-        allArticles =
-            allArticles
-                .filter(Boolean)
-                .map(normalizeArticle);
-
-
-        /*
-         If articles don't exist but events do,
-         automatically generate articles.
-        */
-
-        if (
-            !allArticles.length &&
-            allEvents.length
-        ) {
-
-            allArticles =
-                createArticlesFromEvents(
-                    allEvents
-                );
-
-        }
-
-
-        /*
-         If events are missing but articles contain
-         event data, rebuild the events.
-        */
-
-        if (!allEvents.length) {
-
-            allEvents =
-                createEventsFromArticles();
-
-        }
-
-
-        console.log(
-            "NPC NEWS loaded"
-        );
-
-        console.log(
-            "Articles:",
-            allArticles.length
-        );
-
-        console.log(
-            "Events:",
-            allEvents.length
-        );
-
-        console.log(
-            "Events:",
-            allEvents
-        );
-
-
-        updateStatistics();
-
-        renderHomepage();
-
-        handleHash();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "NPC NEWS ERROR:",
-            error
-        );
-
-        showError(
-            "NPC NEWS could not load the newsroom data. " +
-            "Make sure news.json exists inside the dist folder."
-        );
-
-    }
-
+    );
 }
 
 
-/* ============================================================
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function escapeHTML(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function formatNumber(value) {
+
+    const n = Number(value);
+
+    if (!Number.isFinite(n)) {
+        return "0";
+    }
+
+    return n.toLocaleString("en-IN");
+}
+
+
+function indianNumber(value) {
+
+    const n = Number(value);
+
+    if (!Number.isFinite(n)) {
+        return "0";
+    }
+
+    return n.toLocaleString("en-IN");
+}
+
+
+function formatCurrency(value) {
+
+    const n = Number(value);
+
+    if (!Number.isFinite(n)) {
+        return "₹0";
+    }
+
+    return "₹" + n.toLocaleString("en-IN");
+}
+
+
+function shuffle(array) {
+
+    return [...array].sort(() => Math.random() - 0.5);
+}
+
+
+function uniqueByHeadline(articles) {
+
+    const seen = new Set();
+
+    return articles.filter(article => {
+
+        const headline = String(
+            article.headline || ""
+        )
+        .trim()
+        .toLowerCase();
+
+        if (!headline) {
+            return false;
+        }
+
+        if (seen.has(headline)) {
+            return false;
+        }
+
+        seen.add(headline);
+
+        return true;
+    });
+}
+
+
+function normalizeArray(value) {
+
+    return Array.isArray(value)
+        ? value
+        : [];
+}
+
+
+/* =========================================================
    NORMALIZE EVENT
-   ============================================================ */
+========================================================= */
 
 function normalizeEvent(event) {
 
-    if (!event) {
-        return {};
+    if (!event || typeof event !== "object") {
+        return null;
     }
 
-
-    const damage =
-        event.damage || {};
-
-
-    const consequences =
-        event.consequences || {};
-
-
-    const characters =
-        Array.isArray(event.characters)
-            ? event.characters
-            : [];
-
+    const damage = event.damage || {};
+    const consequences = event.consequences || {};
 
     return {
-
-        ...event,
 
         id:
             event.id ||
@@ -250,162 +195,111 @@ function normalizeEvent(event) {
             event.location ||
             "UNKNOWN LOCATION",
 
-        characters:
-            characters,
+        category:
+            event.category ||
+            "BATTLE",
 
-        winner:
-            event.winner ||
-            "UNCONFIRMED",
-
-        duration:
-            event.duration ||
-            event.battle_duration ||
-            "UNKNOWN",
-
-        damage: {
-
-            buildings:
-                numberOrZero(
-                    damage.buildings ??
-                    event.buildings
-                ),
-
-            roads:
-                numberOrZero(
-                    damage.roads ??
-                    event.roads
-                ),
-
-            vehicles:
-                numberOrZero(
-                    damage.vehicles ??
-                    event.vehicles
-                ),
-
-            businesses:
-                numberOrZero(
-                    damage.businesses ??
-                    event.businesses
-                ),
-
-            npc_affected:
-                numberOrZero(
-                    damage.npc_affected ??
-                    damage.npcs_affected ??
-                    event.npc_affected ??
-                    event.npcs_affected
-                ),
-
-            injuries:
-                numberOrZero(
-                    damage.injuries ??
-                    event.injuries
-                ),
-
-            missing:
-                numberOrZero(
-                    damage.missing ??
-                    event.missing
-                ),
-
-            displaced:
-                numberOrZero(
-                    damage.displaced ??
-                    event.displaced
-                )
-
-        },
-
-        consequences: {
-
-            transport_routes:
-                numberOrZero(
-                    consequences.transport_routes ??
-                    consequences.transport ??
-                    event.transport_routes
-                ),
-
-            schools_closed:
-                numberOrZero(
-                    consequences.schools_closed ??
-                    consequences.schools ??
-                    event.schools_closed
-                ),
-
-            hospitals_affected:
-                numberOrZero(
-                    consequences.hospitals_affected ??
-                    consequences.hospitals ??
-                    event.hospitals_affected
-                ),
-
-            utilities:
-                consequences.utilities ||
-                event.utilities ||
-                "Service disruption reported",
-
-            economic_loss:
-                numberOrZero(
-                    consequences.economic_loss ??
-                    consequences.economicLoss ??
-                    event.economic_loss
-                )
-
-        },
-
-        npc_quotes:
-            Array.isArray(event.npc_quotes)
-                ? event.npc_quotes
-                : [],
-
-        timeline:
-            Array.isArray(event.timeline)
-                ? event.timeline
-                : [],
-
-        aftermath:
-            event.aftermath ||
-            null,
-
-        battle_summary:
-            event.battle_summary ||
-            event.battleReport ||
-            "",
-
-        /*
-         FIX:
-         Preserve a general incident overview if
-         generate.py provides one.
-        */
+        title:
+            event.title ||
+            event.headline ||
+            "Unknown Incident",
 
         overview:
             event.overview ||
             "",
 
-        /*
-         FIX:
-         Preserve optional incident title.
-        */
+        characters:
+            normalizeArray(event.characters),
 
-        title:
-            event.title ||
+        winner:
+            event.winner ||
+            "UNKNOWN",
+
+        duration:
+            event.duration ||
+            "Unknown",
+
+        battle_summary:
+            event.battle_summary ||
+            event.battle ||
+            "",
+
+        damage: {
+
+            buildings:
+                Number(damage.buildings) || 0,
+
+            roads:
+                Number(damage.roads) || 0,
+
+            vehicles:
+                Number(damage.vehicles) || 0,
+
+            businesses:
+                Number(damage.businesses) || 0,
+
+            npc_affected:
+                Number(damage.npc_affected) || 0,
+
+            injuries:
+                Number(damage.injuries) || 0,
+
+            missing:
+                Number(damage.missing) || 0,
+
+            displaced:
+                Number(damage.displaced) || 0
+        },
+
+        consequences: {
+
+            transport_routes:
+                Number(
+                    consequences.transport_routes
+                ) || 0,
+
+            schools_closed:
+                Number(
+                    consequences.schools_closed
+                ) || 0,
+
+            hospitals_affected:
+                Number(
+                    consequences.hospitals_affected
+                ) || 0,
+
+            utilities:
+                consequences.utilities ||
+                "No major utility information available.",
+
+            economic_loss:
+                Number(
+                    consequences.economic_loss
+                ) || 0
+        },
+
+        npc_quotes:
+            normalizeArray(event.npc_quotes),
+
+        timeline:
+            normalizeArray(event.timeline),
+
+        aftermath:
+            event.aftermath ||
             ""
-
     };
-
 }
 
 
-/* ============================================================
+/* =========================================================
    NORMALIZE ARTICLE
-   ============================================================ */
+========================================================= */
 
 function normalizeArticle(article) {
 
-    if (!article) {
-        return {};
+    if (!article || typeof article !== "object") {
+        return null;
     }
-
 
     return {
 
@@ -413,21 +307,28 @@ function normalizeArticle(article) {
 
         id:
             article.id ||
-            generateArticleId(article),
+            randomID(),
 
         event_id:
             article.event_id ||
             article.eventId ||
-            article.event?.id ||
             "",
 
         category:
             article.category ||
-            "NEWS",
+            "GENERAL",
+
+        type:
+            article.type ||
+            "REPORT",
+
+        priority:
+            article.priority ||
+            "NORMAL",
 
         headline:
             article.headline ||
-            "Untitled report",
+            "Untitled Report",
 
         summary:
             article.summary ||
@@ -435,472 +336,700 @@ function normalizeArticle(article) {
 
         body:
             article.body ||
-            article.summary ||
             "",
-
-        reporter:
-            article.reporter ||
-            "NPC News Desk",
-
-        published:
-            article.published ||
-            article.date ||
-            new Date().toISOString(),
 
         world:
             article.world ||
-            "",
+            "UNKNOWN WORLD",
 
         location:
             article.location ||
-            ""
+            "",
 
+        winner:
+            article.winner ||
+            "",
+
+        published:
+            article.published ||
+            new Date().toISOString(),
+
+        reporter:
+            article.reporter ||
+            "NPC News Desk"
     };
-
 }
 
 
-/* ============================================================
+function randomID() {
+
+    return Math.random()
+        .toString(36)
+        .substring(2, 10);
+}
+
+
+/* =========================================================
+   CREATE EVENTS FROM ARTICLES
+   FALLBACK COMPATIBILITY
+========================================================= */
+
+function createEventsFromArticles(articles) {
+
+    const map = new Map();
+
+    articles.forEach(article => {
+
+        const id =
+            article.event_id ||
+            article.eventId;
+
+        if (!id) {
+            return;
+        }
+
+        if (!map.has(id)) {
+
+            map.set(
+                id,
+                normalizeEvent({
+
+                    id,
+
+                    world:
+                        article.world,
+
+                    location:
+                        article.location,
+
+                    category:
+                        article.category,
+
+                    title:
+                        article.headline,
+
+                    overview:
+                        article.overview ||
+                        "",
+
+                    characters:
+                        article.characters ||
+                        [],
+
+                    winner:
+                        article.winner,
+
+                    duration:
+                        article.duration,
+
+                    battle_summary:
+                        article.battle_summary,
+
+                    damage:
+                        article.damage,
+
+                    consequences:
+                        article.consequences,
+
+                    npc_quotes:
+                        article.npc_quotes,
+
+                    timeline:
+                        article.timeline,
+
+                    aftermath:
+                        article.aftermath
+                })
+            );
+        }
+    });
+
+    return [...map.values()];
+}
+
+
+/* =========================================================
+   FIND EVENT / ARTICLE
+========================================================= */
+
+function getEvent(eventId) {
+
+    return ALL_EVENTS.find(
+        event =>
+            String(event.id) === String(eventId)
+    );
+}
+
+
+function getArticle(articleId) {
+
+    return ALL_ARTICLES.find(
+        article =>
+            String(article.id) === String(articleId)
+    );
+}
+
+
+function getArticlesForEvent(eventId) {
+
+    return ALL_ARTICLES.filter(
+        article =>
+            String(article.event_id) ===
+            String(eventId)
+    );
+}
+
+
+/* =========================================================
+   ARTICLE → EVENT
+========================================================= */
+
+function enrichEventsFromArticles() {
+
+    ALL_EVENTS.forEach(event => {
+
+        const articles =
+            getArticlesForEvent(event.id);
+
+        if (!articles.length) {
+            return;
+        }
+
+        const first =
+            articles.find(
+                article =>
+                    article.type === "BREAKING"
+            ) ||
+            articles[0];
+
+        if (!event.title) {
+            event.title =
+                first.headline;
+        }
+
+        if (!event.overview) {
+            event.overview =
+                first.summary ||
+                first.body ||
+                "";
+        }
+
+        if (
+            !event.battle_summary &&
+            first.battle_summary
+        ) {
+            event.battle_summary =
+                first.battle_summary;
+        }
+
+        if (
+            (!event.characters ||
+                !event.characters.length) &&
+            first.characters
+        ) {
+            event.characters =
+                first.characters;
+        }
+
+        if (
+            event.winner === "UNKNOWN" &&
+            first.winner
+        ) {
+            event.winner =
+                first.winner;
+        }
+
+        if (
+            event.duration === "Unknown" &&
+            first.duration
+        ) {
+            event.duration =
+                first.duration;
+        }
+
+        if (
+            (!event.npc_quotes ||
+                !event.npc_quotes.length) &&
+            first.npc_quotes
+        ) {
+            event.npc_quotes =
+                first.npc_quotes;
+        }
+
+        if (
+            (!event.timeline ||
+                !event.timeline.length) &&
+            first.timeline
+        ) {
+            event.timeline =
+                first.timeline;
+        }
+
+        if (
+            !event.aftermath &&
+            first.aftermath
+        ) {
+            event.aftermath =
+                first.aftermath;
+        }
+    });
+}
+
+
+/* =========================================================
+   LOAD NEWS
+========================================================= */
+
+async function loadNews() {
+
+    try {
+
+        const response = await fetch(
+            "news.json?cache=" +
+            Date.now()
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Unable to load news.json"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        NEWS = data || {};
+
+        let rawEvents = [];
+
+        let rawArticles = [];
+
+        if (Array.isArray(data)) {
+
+            rawArticles = data;
+
+        } else {
+
+            rawEvents =
+                Array.isArray(data.events)
+                    ? data.events
+                    : [];
+
+            rawArticles =
+                Array.isArray(data.articles)
+                    ? data.articles
+                    : [];
+        }
+
+
+        ALL_ARTICLES =
+            rawArticles
+                .map(normalizeArticle)
+                .filter(Boolean);
+
+
+        ALL_EVENTS =
+            rawEvents
+                .map(normalizeEvent)
+                .filter(Boolean);
+
+
+        /*
+         * FALLBACK
+         *
+         * If news.json does not contain events,
+         * rebuild them from articles.
+         */
+
+        if (!ALL_EVENTS.length) {
+
+            ALL_EVENTS =
+                createEventsFromArticles(
+                    ALL_ARTICLES
+                );
+        }
+
+
+        enrichEventsFromArticles();
+
+
+        /*
+         * If articles do not exist,
+         * create basic articles from events.
+         */
+
+        if (!ALL_ARTICLES.length) {
+
+            ALL_ARTICLES =
+                createArticlesFromEvents(
+                    ALL_EVENTS
+                );
+        }
+
+
+        renderStatistics();
+
+        renderTicker();
+
+        setupNavigation();
+
+        handleHash();
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (homepage) {
+
+            homepage.innerHTML = `
+                <section class="incident-section">
+                    <h2>NEWSROOM ERROR</h2>
+                    <p>
+                        NPC News could not load the newsroom data.
+                    </p>
+                    <p>
+                        Please check that
+                        <strong>news.json</strong>
+                        exists inside the dist folder.
+                    </p>
+                </section>
+            `;
+        }
+    }
+}
+
+
+/* =========================================================
    CREATE ARTICLES FROM EVENTS
-   ============================================================ */
+========================================================= */
 
 function createArticlesFromEvents(events) {
 
     const articles = [];
 
-
     events.forEach(event => {
 
-        const e =
-            normalizeEvent(event);
+        articles.push({
 
-
-        if (!e.id) {
-            return;
-        }
-
-
-        const first =
-            e.characters[0] ||
-            "Combatant";
-
-
-        const second =
-            e.characters[1] ||
-            "Opponent";
-
-
-        const location =
-            e.location;
-
-
-        const world =
-            e.world;
-
-
-        const damage =
-            e.damage;
-
-
-        const consequences =
-            e.consequences;
-
-
-        /*
-         FIX:
-         Every automatically-created article carries
-         enough incident information to reconstruct
-         the complete incident if necessary.
-        */
-
-        const base = {
+            id:
+                randomID(),
 
             event_id:
-                e.id,
-
-            world:
-                world,
-
-            location:
-                location,
-
-            characters:
-                e.characters,
-
-            winner:
-                e.winner,
-
-            duration:
-                e.duration,
-
-            damage:
-                e.damage,
-
-            consequences:
-                e.consequences,
-
-            npc_quotes:
-                e.npc_quotes,
-
-            timeline:
-                e.timeline,
-
-            aftermath:
-                e.aftermath,
-
-            battle_summary:
-                e.battle_summary,
-
-            overview:
-                e.overview,
-
-            reporter:
-                "NPC News Desk",
-
-            published:
-                new Date().toISOString()
-
-        };
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-breaking",
+                event.id,
 
             category:
+                event.category,
+
+            type:
                 "BREAKING",
 
+            priority:
+                "HIGH",
+
             headline:
-                `${e.winner} defeats ${second} after ${e.duration} battle`,
+                event.title,
 
             summary:
-                `The battle in ${location} has ended, but ordinary residents are now dealing with the aftermath.`,
+                event.overview,
 
             body:
-                `The confrontation between ${first} and ${second} lasted ${e.duration}. ${formatNumber(damage.npc_affected)} NPCs were affected and authorities are assessing the damage.`
+                event.overview,
 
+            world:
+                event.world,
+
+            location:
+                event.location,
+
+            characters:
+                event.characters,
+
+            winner:
+                event.winner,
+
+            duration:
+                event.duration,
+
+            battle_summary:
+                event.battle_summary,
+
+            damage:
+                event.damage,
+
+            consequences:
+                event.consequences,
+
+            npc_quotes:
+                event.npc_quotes,
+
+            timeline:
+                event.timeline,
+
+            aftermath:
+                event.aftermath,
+
+            published:
+                new Date().toISOString(),
+
+            reporter:
+                "NPC News Desk"
         });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-battle",
-
-            category:
-                "BATTLE",
-
-            headline:
-                `${first} vs ${second}: What happened in ${location}`,
-
-            summary:
-                `A timeline of the confrontation and its immediate consequences.`,
-
-            body:
-                `The reported confrontation involved ${first} and ${second}. ${e.winner} was reported as the winner after ${e.duration}.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-damage",
-
-            category:
-                "DAMAGE",
-
-            headline:
-                `${formatNumber(damage.buildings)} buildings affected after ${first}-${second} battle`,
-
-            summary:
-                `Structural inspections have begun across ${location}.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-transport",
-
-            category:
-                "TRANSPORT",
-
-            headline:
-                `${formatNumber(consequences.transport_routes)} public transport routes affected`,
-
-            summary:
-                `Commuters face disruption while infrastructure inspections continue.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-health",
-
-            category:
-                "HEALTH",
-
-            headline:
-                `${formatNumber(damage.injuries)} injuries reported after ${location} battle`,
-
-            summary:
-                `Medical teams continue to assess residents and responders.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-housing",
-
-            category:
-                "HOUSING",
-
-            headline:
-                `${formatNumber(damage.displaced)} residents temporarily displaced`,
-
-            summary:
-                `Families are looking for temporary accommodation after the battle.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-business",
-
-            category:
-                "BUSINESS",
-
-            headline:
-                `${formatNumber(damage.businesses)} businesses affected by battle`,
-
-            summary:
-                `Shop owners say the fight has created another unexpected business crisis.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-economy",
-
-            category:
-                "ECONOMY",
-
-            headline:
-                `Battle damage could cost ${formatCurrency(consequences.economic_loss)}`,
-
-            summary:
-                `Local officials begin calculating the financial consequences.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-npc-life",
-
-            category:
-                "NPC LIFE",
-
-            headline:
-                `Residents ask a simple question: Who pays for all this?`,
-
-            summary:
-                `Ordinary residents describe life after another superpowered confrontation.`
-
-        });
-
-
-        articles.push({
-
-            ...base,
-
-            id:
-                e.id +
-                "-reconstruction",
-
-            category:
-                "RECONSTRUCTION",
-
-            headline:
-                `Reconstruction begins as ${location} counts its losses`,
-
-            summary:
-                `Repair crews begin the long process of restoring normal life.`
-
-        });
-
     });
 
-
     return articles;
-
 }
 
 
-/* ============================================================
-   DATE
-   ============================================================ */
-
-function setCurrentDate() {
-
-    const element =
-        document.getElementById(
-            "currentDate"
-        );
-
-
-    if (!element) {
-        return;
-    }
-
-
-    const now =
-        new Date();
-
-
-    element.textContent =
-        now.toLocaleDateString(
-            "en-US",
-            {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            }
-        );
-
-}
-
-
-/* ============================================================
+/* =========================================================
    STATISTICS
-   ============================================================ */
+========================================================= */
 
-function updateStatistics() {
-
-    const eventCount =
-        document.getElementById(
-            "eventCount"
-        );
-
-
-    const articleCount =
-        document.getElementById(
-            "articleCount"
-        );
-
-
-    const npcCount =
-        document.getElementById(
-            "npcCount"
-        );
-
+function renderStatistics() {
 
     if (eventCount) {
 
         eventCount.textContent =
-            allEvents.length;
-
+            formatNumber(
+                ALL_EVENTS.length
+            );
     }
 
 
     if (articleCount) {
 
         articleCount.textContent =
-            allArticles.length;
-
+            formatNumber(
+                ALL_ARTICLES.length
+            );
     }
 
 
     if (npcCount) {
 
-        let total = 0;
-
-
-        allEvents.forEach(event => {
-
-            total +=
-                numberOrZero(
-                    event.damage?.npc_affected
-                );
-
-        });
-
+        const total =
+            ALL_EVENTS.reduce(
+                (sum, event) =>
+                    sum +
+                    Number(
+                        event.damage?.npc_affected
+                    || 0),
+                0
+            );
 
         npcCount.textContent =
             formatNumber(total);
-
     }
-
 }
 
 
-/* ============================================================
+/* =========================================================
+   TICKER
+========================================================= */
+
+function renderTicker() {
+
+    if (!breakingTicker) {
+        return;
+    }
+
+    const breaking =
+        ALL_ARTICLES.filter(
+            article =>
+                article.type === "BREAKING" ||
+                article.priority === "HIGH"
+        );
+
+    const selected =
+        breaking.length
+            ? shuffle(breaking).slice(0, 5)
+            : shuffle(ALL_ARTICLES).slice(0, 5);
+
+    breakingTicker.innerHTML =
+        selected
+            .map(article => {
+
+                return `
+                    <span
+                        class="ticker-item"
+                        data-event-id="${escapeHTML(article.event_id)}"
+                        data-article-id="${escapeHTML(article.id)}">
+
+                        ${escapeHTML(article.headline)}
+
+                    </span>
+                `;
+
+            })
+            .join(" • ");
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function setupNavigation() {
+
+    document
+        .querySelectorAll(".main-nav a[data-category]")
+        .forEach(link => {
+
+            /*
+             * Prevent duplicate listeners.
+             */
+
+            if (
+                link.dataset.navigationReady === "true"
+            ) {
+                return;
+            }
+
+            link.dataset.navigationReady =
+                "true";
+
+
+            link.addEventListener(
+                "click",
+                function(event) {
+
+                    event.preventDefault();
+
+                    const category =
+                        this.dataset.category ||
+                        "ALL";
+
+                    navigateToCategory(
+                        category
+                    );
+                }
+            );
+        });
+}
+
+
+/* =========================================================
+   CATEGORY NAVIGATION
+========================================================= */
+
+function navigateToCategory(category) {
+
+    category =
+        String(category || "ALL")
+            .trim()
+            .toUpperCase();
+
+
+    currentView = category;
+
+    currentEventId = null;
+
+    currentArticleId = null;
+
+
+    /*
+     * Change URL without reloading.
+     */
+
+    const hash =
+        category === "ALL"
+            ? "#home"
+            : "#category/" +
+              encodeURIComponent(category);
+
+    if (
+        window.location.hash !== hash
+    ) {
+
+        history.pushState(
+            {
+                category
+            },
+            "",
+            hash
+        );
+    }
+
+
+    showHomepage();
+
+
+    /*
+     * HOME
+     */
+
+    if (category === "ALL") {
+
+        renderHomepage();
+
+        return;
+    }
+
+
+    /*
+     * WORLDS
+     */
+
+    if (category === "WORLDS") {
+
+        renderWorldsPage();
+
+        return;
+    }
+
+
+    /*
+     * Other categories
+     */
+
+    renderCategoryPage(
+        category
+    );
+}
+
+
+/* =========================================================
+   SHOW HOMEPAGE
+========================================================= */
+
+function showHomepage() {
+
+    if (homepage) {
+
+        homepage.style.display =
+            "block";
+    }
+
+    if (incidentPage) {
+
+        incidentPage.style.display =
+            "none";
+    }
+}
+
+
+function showIncidentPage() {
+
+    if (homepage) {
+
+        homepage.style.display =
+            "none";
+    }
+
+    if (incidentPage) {
+
+        incidentPage.style.display =
+            "block";
+    }
+}
+
+
+/* =========================================================
    HOMEPAGE
-   ============================================================ */
+========================================================= */
 
 function renderHomepage() {
 
-    const homepage =
-        document.getElementById(
-            "homepage"
-        );
-
-
-    const incidentPage =
-        document.getElementById(
-            "incidentPage"
-        );
-
-
-    if (homepage) {
-        homepage.style.display = "block";
-    }
-
-
-    if (incidentPage) {
-        incidentPage.style.display = "none";
-    }
-
+    showHomepage();
 
     renderLead();
 
@@ -908,933 +1037,1473 @@ function renderHomepage() {
 
     renderNewsGrid();
 
-
-    renderSmallSection(
-        "npcNews",
-        [
-            "NPC LIFE",
-            "LOCAL",
-            "HOUSING",
-            "EMPLOYMENT",
-            "HEALTH",
-            "EDUCATION"
-        ]
-    );
-
-
-    renderSmallSection(
-        "businessNews",
-        [
-            "BUSINESS",
-            "ECONOMY",
-            "EMPLOYMENT",
-            "RECONSTRUCTION"
-        ]
-    );
-
-
-    renderSmallSection(
-        "transportNews",
-        [
-            "TRANSPORT",
-            "INFRASTRUCTURE",
-            "UTILITIES",
-            "DAMAGE"
-        ]
-    );
-
+    renderSmallSections();
 
     renderWorldNews();
 
-    renderTicker();
-
+    updateActiveNavigation(
+        "ALL"
+    );
 }
 
 
-/* ============================================================
-   LEAD
-   ============================================================ */
+/* =========================================================
+   LEAD STORY
+========================================================= */
 
 function renderLead() {
 
-    if (!allArticles.length) {
+    if (!leadHeadline) {
         return;
     }
 
-
-    const lead =
-        getLeadArticle();
-
-
-    if (!lead) {
+    if (!ALL_ARTICLES.length) {
         return;
     }
-
-
-    currentArticle =
-        lead;
-
-
-    setText(
-        "leadCategory",
-        lead.category
-    );
-
-
-    setText(
-        "leadHeadline",
-        lead.headline
-    );
-
-
-    setText(
-        "leadSummary",
-        lead.summary
-    );
-
-
-    setText(
-        "leadMeta",
-        buildMeta(lead)
-    );
-
-
-    setHTML(
-        "leadBody",
-        `<p>${escapeHTML(
-            lead.body ||
-            lead.summary ||
-            ""
-        )}</p>`
-    );
-
-
-    const leadStory =
-        document.querySelector(
-            ".lead-story"
-        );
-
-
-    if (!leadStory) {
-        return;
-    }
-
-
-    leadStory.dataset.eventId =
-        lead.event_id;
-
-
-    leadStory.dataset.articleId =
-        lead.id;
-
-
-    leadStory.classList.add(
-        "clickable"
-    );
-
-}
-
-
-/* ============================================================
-   NEW LEAD
-   ============================================================ */
-
-function setupNewLeadButton() {
-
-    const button =
-        document.getElementById(
-            "newLead"
-        );
-
-
-    if (!button) {
-        return;
-    }
-
-
-    button.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
-
-            event.stopPropagation();
-
-            renderLead();
-
-        }
-    );
-
-}
-
-
-/* ============================================================
-   GET LEAD
-   ============================================================ */
-
-function getLeadArticle() {
 
     const breaking =
-        allArticles.filter(
+        ALL_ARTICLES.filter(
             article =>
-                String(
-                    article.category
-                ).toUpperCase()
-                ===
-                "BREAKING"
+                article.priority === "HIGH" ||
+                article.type === "BREAKING"
         );
-
-
-    if (breaking.length) {
-
-        return randomItem(
-            breaking
-        );
-
-    }
-
-
-    return randomItem(
-        allArticles
-    );
-
-}
-
-
-/* ============================================================
-   LATEST
-   ============================================================ */
-
-function renderLatest() {
-
-    const container =
-        document.getElementById(
-            "latestNews"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const articles =
-        [...allArticles]
-            .sort(sortByDate)
-            .slice(0, 10);
-
-
-    container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="latest-item clickable"
-                data-event-id="${escapeAttribute(article.event_id)}"
-                data-article-id="${escapeAttribute(article.id)}"
-            >
-
-                <div class="time">
-                    ${escapeHTML(
-                        article.category
-                    )}
-                </div>
-
-                <h3>
-                    ${escapeHTML(
-                        article.headline
-                    )}
-                </h3>
-
-                <div class="read-more">
-                    READ FULL INCIDENT →
-                </div>
-
-            </article>
-
-        `).join("");
-
-}
-
-
-/* ============================================================
-   NEWS GRID
-   ============================================================ */
-
-function renderNewsGrid() {
-
-    const container =
-        document.getElementById(
-            "newsGrid"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const articles =
-        shuffle(
-            [...allArticles]
-        ).slice(0, 16);
-
-
-    container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="news-card clickable"
-                data-event-id="${escapeAttribute(article.event_id)}"
-                data-article-id="${escapeAttribute(article.id)}"
-            >
-
-                <div class="category">
-                    ${escapeHTML(
-                        article.category
-                    )}
-                </div>
-
-                <h3>
-                    ${escapeHTML(
-                        article.headline
-                    )}
-                </h3>
-
-                <p>
-                    ${escapeHTML(
-                        article.summary
-                    )}
-                </p>
-
-                <div class="meta">
-                    ${buildMeta(article)}
-                </div>
-
-                <div class="read-more">
-                    READ MORE →
-                </div>
-
-            </article>
-
-        `).join("");
-
-}
-
-
-/* ============================================================
-   SMALL SECTIONS
-   ============================================================ */
-
-function renderSmallSection(
-    elementId,
-    categories
-) {
-
-    const container =
-        document.getElementById(
-            elementId
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const wanted =
-        allArticles.filter(article => {
-
-            const category =
-                String(
-                    article.category || ""
-                ).toUpperCase();
-
-
-            return categories.some(
-                item =>
-                    category === item ||
-                    category.includes(item)
-            );
-
-        });
-
-
-    const articles =
-        shuffle(
-            wanted.length
-                ? wanted
-                : [...allArticles]
-        ).slice(0, 5);
-
-
-    container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="small-story clickable"
-                data-event-id="${escapeAttribute(article.event_id)}"
-                data-article-id="${escapeAttribute(article.id)}"
-            >
-
-                <small>
-                    ${escapeHTML(
-                        article.category
-                    )}
-                </small>
-
-                <h3>
-                    ${escapeHTML(
-                        article.headline
-                    )}
-                </h3>
-
-                <p>
-                    ${escapeHTML(
-                        article.summary
-                    )}
-                </p>
-
-                <div class="read-more">
-                    READ FULL INCIDENT →
-                </div>
-
-            </article>
-
-        `).join("");
-
-}
-
-
-/* ============================================================
-   WORLD NEWS
-   ============================================================ */
-
-function renderWorldNews() {
-
-    const container =
-        document.getElementById(
-            "worldNews"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const worlds = {};
-
-
-    allArticles.forEach(article => {
-
-        const world =
-            article.world ||
-            getEvent(article.event_id)?.world ||
-            "UNKNOWN WORLD";
-
-
-        if (!worlds[world]) {
-            worlds[world] = [];
-        }
-
-
-        worlds[world].push(article);
-
-    });
-
-
-    container.innerHTML =
-        Object.keys(worlds)
-            .map(world => {
-
-                const article =
-                    randomItem(
-                        worlds[world]
-                    );
-
-
-                return `
-
-                    <article
-                        class="world-card clickable"
-                        data-event-id="${escapeAttribute(article.event_id)}"
-                        data-article-id="${escapeAttribute(article.id)}"
-                    >
-
-                        <small>
-                            WORLD DESK
-                        </small>
-
-                        <h3>
-                            ${escapeHTML(world)}
-                        </h3>
-
-                        <p>
-                            ${escapeHTML(
-                                article.headline
-                            )}
-                        </p>
-
-                        <div class="read-more">
-                            ENTER WORLD →
-                        </div>
-
-                    </article>
-
-                `;
-
-            })
-            .join("");
-
-}
-
-
-/* ============================================================
-   TICKER
-   ============================================================ */
-
-function renderTicker() {
-
-    const ticker =
-        document.getElementById(
-            "breakingTicker"
-        );
-
-
-    if (!ticker) {
-        return;
-    }
-
-
-    const breaking =
-        allArticles.filter(
-            article =>
-                String(
-                    article.category || ""
-                ).toUpperCase()
-                ===
-                "BREAKING"
-        );
-
 
     const source =
         breaking.length
             ? breaking
-            : allArticles;
+            : ALL_ARTICLES;
+
+    const article =
+        source[
+            Math.floor(
+                Math.random() *
+                source.length
+            )
+        ];
 
 
-    ticker.textContent =
-        shuffle(
-            [...source]
-        )
-        .slice(0, 5)
-        .map(
-            article =>
-                article.headline
-        )
-        .join("   •   ");
+    leadCategory.textContent =
+        article.category || "BREAKING";
 
+    leadHeadline.textContent =
+        article.headline;
+
+    leadSummary.textContent =
+        article.summary || "";
+
+    leadMeta.innerHTML =
+        `
+            ${escapeHTML(article.world || "")}
+            •
+            ${escapeHTML(article.location || "")}
+            •
+            ${formatDate(article.published)}
+        `;
+
+    leadBody.innerHTML =
+        article.body
+            ? `<p>${escapeHTML(article.body)}</p>`
+            : "";
+
+
+    /*
+     * Clicking the lead story
+     * opens the whole incident.
+     */
+
+    const lead =
+        document.querySelector(
+            ".lead-story"
+        );
+
+    if (lead) {
+
+        lead.dataset.eventId =
+            article.event_id;
+
+        lead.dataset.articleId =
+            article.id;
+
+        lead.style.cursor =
+            "pointer";
+
+        lead.onclick =
+            function(event) {
+
+                if (
+                    event.target === newLead
+                ) {
+                    return;
+                }
+
+                openIncident(
+                    article.event_id,
+                    article.id
+                );
+            };
+    }
 }
 
 
-/* ============================================================
-   GLOBAL CLICK HANDLER
-   ============================================================ */
+/* =========================================================
+   LATEST NEWS
+========================================================= */
 
-function handleGlobalArticleClick(event) {
+function renderLatest(
+    articles = ALL_ARTICLES
+) {
 
-    const nav =
-        event.target.closest(
-            ".main-nav a"
-        );
+    if (!latestNews) {
+        return;
+    }
+
+    const selected =
+        uniqueByHeadline(
+            [...articles]
+                .sort(
+                    (a, b) =>
+                        new Date(
+                            b.published
+                        ) -
+                        new Date(
+                            a.published
+                        )
+                )
+        ).slice(0, 10);
 
 
-    if (nav) {
+    latestNews.innerHTML =
+        selected
+            .map(article => {
+
+                return articleCard(
+                    article,
+                    "compact"
+                );
+
+            })
+            .join("");
+}
+
+
+/* =========================================================
+   NEWS GRID
+========================================================= */
+
+function renderNewsGrid(
+    articles = ALL_ARTICLES
+) {
+
+    if (!newsGrid) {
+        return;
+    }
+
+    const selected =
+        uniqueByHeadline(
+            shuffle(articles)
+        ).slice(0, 16);
+
+
+    newsGrid.innerHTML =
+        selected
+            .map(article =>
+                articleCard(
+                    article,
+                    "normal"
+                )
+            )
+            .join("");
+}
+
+
+/* =========================================================
+   SMALL SECTIONS
+========================================================= */
+
+function renderSmallSections(
+    articles = ALL_ARTICLES
+) {
+
+    if (!npcNews ||
+        !businessNews ||
+        !transportNews) {
         return;
     }
 
 
-    if (
-        event.target.closest(
-            "#backButton"
-        )
-    ) {
+    const npc =
+        uniqueByHeadline(
+            articles.filter(
+                article =>
+                    isNPCArticle(article)
+            )
+        ).slice(0, 5);
+
+
+    const business =
+        uniqueByHeadline(
+            articles.filter(
+                article =>
+                    isBusinessArticle(article)
+            )
+        ).slice(0, 5);
+
+
+    const transport =
+        uniqueByHeadline(
+            articles.filter(
+                article =>
+                    isTransportArticle(article)
+            )
+        ).slice(0, 5);
+
+
+    npcNews.innerHTML =
+        npc.map(
+            article =>
+                articleCard(
+                    article,
+                    "small"
+                )
+        ).join("");
+
+
+    businessNews.innerHTML =
+        business.map(
+            article =>
+                articleCard(
+                    article,
+                    "small"
+                )
+        ).join("");
+
+
+    transportNews.innerHTML =
+        transport.map(
+            article =>
+                articleCard(
+                    article,
+                    "small"
+                )
+        ).join("");
+}
+
+
+/* =========================================================
+   ARTICLE CATEGORY HELPERS
+========================================================= */
+
+function isNPCArticle(article) {
+
+    const text =
+        (
+            article.category +
+            " " +
+            article.headline +
+            " " +
+            article.type
+        ).toUpperCase();
+
+    return (
+        text.includes("NPC") ||
+        text.includes("HOUSING") ||
+        text.includes("SOCIAL") ||
+        text.includes("FOOD") ||
+        text.includes("EMPLOYMENT") ||
+        text.includes("COMMUNITY")
+    );
+}
+
+
+function isBusinessArticle(article) {
+
+    const text =
+        (
+            article.category +
+            " " +
+            article.headline +
+            " " +
+            article.type
+        ).toUpperCase();
+
+    return (
+        text.includes("BUSINESS") ||
+        text.includes("ECONOM") ||
+        text.includes("INSURANCE") ||
+        text.includes("EMPLOYMENT")
+    );
+}
+
+
+function isTransportArticle(article) {
+
+    const text =
+        (
+            article.category +
+            " " +
+            article.headline +
+            " " +
+            article.type
+        ).toUpperCase();
+
+    return (
+        text.includes("TRANSPORT") ||
+        text.includes("ROAD") ||
+        text.includes("VEHICLE") ||
+        text.includes("INFRASTRUCTURE")
+    );
+}
+
+
+/* =========================================================
+   ARTICLE CARD
+========================================================= */
+
+function articleCard(
+    article,
+    size = "normal"
+) {
+
+    return `
+
+        <article
+            class="news-card ${size}"
+            data-event-id="${escapeHTML(article.event_id)}"
+            data-article-id="${escapeHTML(article.id)}"
+            tabindex="0"
+            role="button">
+
+            <div class="article-label">
+                ${escapeHTML(
+                    article.category ||
+                    "NEWS"
+                )}
+            </div>
+
+            <h3>
+                ${escapeHTML(
+                    article.headline
+                )}
+            </h3>
+
+            ${
+                size !== "compact"
+                    ? `
+                        <p>
+                            ${escapeHTML(
+                                article.summary ||
+                                ""
+                            )}
+                        </p>
+                    `
+                    : ""
+            }
+
+            <div class="article-meta">
+
+                ${escapeHTML(
+                    article.world ||
+                    ""
+                )}
+
+                •
+
+                ${escapeHTML(
+                    article.location ||
+                    ""
+                )}
+
+                •
+
+                ${formatDate(
+                    article.published
+                )}
+
+            </div>
+
+        </article>
+    `;
+}
+
+
+/* =========================================================
+   WORLD NEWS
+========================================================= */
+
+function renderWorldNews() {
+
+    if (!worldNews) {
         return;
     }
 
-
-    if (
-        event.target.closest(
-            "#newLead"
-        )
-    ) {
-        return;
-    }
+    const worlds =
+        [...new Set(
+            ALL_EVENTS.map(
+                event => event.world
+            )
+        )];
 
 
-    const clickable =
-        event.target.closest(
-            "[data-event-id]"
-        );
+    worldNews.innerHTML =
+        worlds.map(world => {
+
+            const event =
+                ALL_EVENTS.find(
+                    item =>
+                        item.world === world
+                );
+
+            if (!event) {
+                return "";
+            }
+
+            const articles =
+                getArticlesForEvent(
+                    event.id
+                );
+
+            const article =
+                articles[0];
 
 
-    if (!clickable) {
-        return;
-    }
+            return `
+
+                <article
+                    class="world-card"
+                    data-event-id="${escapeHTML(event.id)}"
+                    data-article-id="${
+                        escapeHTML(
+                            article?.id || ""
+                        )
+                    }"
+                    tabindex="0"
+                    role="button">
+
+                    <div class="article-label">
+                        WORLD
+                    </div>
+
+                    <h3>
+                        ${escapeHTML(world)}
+                    </h3>
+
+                    <strong>
+                        ${escapeHTML(
+                            event.location
+                        )}
+                    </strong>
+
+                    <p>
+                        ${escapeHTML(
+                            event.title
+                        )}
+                    </p>
+
+                </article>
+
+            `;
+
+        }).join("");
+}
 
 
-    const eventId =
-        clickable.dataset.eventId;
+/* =========================================================
+   CATEGORY PAGE
+========================================================= */
 
+function renderCategoryPage(
+    category
+) {
 
-    const articleId =
-        clickable.dataset.articleId ||
-        null;
+    showHomepage();
 
-
-    if (!eventId) {
-
-        console.error(
-            "Clickable item has no event_id:",
-            clickable
-        );
-
-        return;
-
-    }
-
-
-    event.preventDefault();
-
-    openIncident(
-        eventId,
-        articleId
+    updateActiveNavigation(
+        category
     );
 
+
+    let filtered = [];
+
+
+    switch (category) {
+
+        case "BREAKING":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        article.type === "BREAKING" ||
+                        article.priority === "HIGH"
+                );
+
+            break;
+
+
+        case "BATTLE":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        containsAny(
+                            article,
+                            [
+                                "BATTLE",
+                                "FIGHT",
+                                "DUEL",
+                                "COMBAT"
+                            ]
+                        )
+                );
+
+            break;
+
+
+        case "NPC LIFE":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        isNPCArticle(article)
+                );
+
+            break;
+
+
+        case "DAMAGE":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        containsAny(
+                            article,
+                            [
+                                "DAMAGE",
+                                "DESTROY",
+                                "DESTRUCTION",
+                                "REPAIR",
+                                "DEBRIS",
+                                "BUILDING",
+                                "INJUR"
+                            ]
+                        )
+                );
+
+            break;
+
+
+        case "BUSINESS":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        isBusinessArticle(article)
+                );
+
+            break;
+
+
+        case "TRANSPORT":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        isTransportArticle(article)
+                );
+
+            break;
+
+
+        case "HOUSING":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        containsAny(
+                            article,
+                            [
+                                "HOUSING",
+                                "APARTMENT",
+                                "HOME",
+                                "RESIDENT",
+                                "DISPLACED"
+                            ]
+                        )
+                );
+
+            break;
+
+
+        case "HEALTH":
+
+            filtered =
+                ALL_ARTICLES.filter(
+                    article =>
+                        containsAny(
+                            article,
+                            [
+                                "HEALTH",
+                                "HOSPITAL",
+                                "INJUR",
+                                "MEDICAL",
+                                "EMERGENCY",
+                                "AMBULANCE"
+                            ]
+                        )
+                );
+
+            break;
+
+
+        default:
+
+            filtered =
+                ALL_ARTICLES;
+    }
+
+
+    /*
+     * If the exact keyword produced nothing,
+     * show articles from matching events.
+     */
+
+    if (!filtered.length) {
+
+        filtered =
+            ALL_ARTICLES.filter(
+                article =>
+                    String(
+                        article.category || ""
+                    ).toUpperCase() ===
+                    category
+            );
+    }
+
+
+    /*
+     * Build a clean category page
+     * inside the existing homepage.
+     */
+
+    renderFilteredHomepage(
+        category,
+        filtered
+    );
 }
 
 
-/* ============================================================
-   OPEN INCIDENT
-   ============================================================ */
+/* =========================================================
+   FILTERED HOMEPAGE
+========================================================= */
+
+function renderFilteredHomepage(
+    category,
+    articles
+) {
+
+    showHomepage();
+
+
+    const uniqueArticles =
+        uniqueByHeadline(
+            articles
+        );
+
+
+    /*
+     * Lead
+     */
+
+    const lead =
+        uniqueArticles[0];
+
+
+    if (lead) {
+
+        leadCategory.textContent =
+            category;
+
+        leadHeadline.textContent =
+            lead.headline;
+
+        leadSummary.textContent =
+            lead.summary || "";
+
+        leadMeta.innerHTML = `
+            ${escapeHTML(
+                lead.world || ""
+            )}
+            •
+            ${escapeHTML(
+                lead.location || ""
+            )}
+            •
+            ${formatDate(
+                lead.published
+            )}
+        `;
+
+        leadBody.innerHTML =
+            lead.body
+                ? `<p>${escapeHTML(
+                    lead.body
+                )}</p>`
+                : "";
+
+
+        const leadStory =
+            document.querySelector(
+                ".lead-story"
+            );
+
+        if (leadStory) {
+
+            leadStory.dataset.eventId =
+                lead.event_id;
+
+            leadStory.dataset.articleId =
+                lead.id;
+
+            leadStory.style.cursor =
+                "pointer";
+
+            leadStory.onclick =
+                function(event) {
+
+                    if (
+                        event.target ===
+                        newLead
+                    ) {
+                        return;
+                    }
+
+                    openIncident(
+                        lead.event_id,
+                        lead.id
+                    );
+                };
+        }
+    }
+
+
+    /*
+     * Latest
+     */
+
+    renderLatest(
+        uniqueArticles
+    );
+
+
+    /*
+     * Grid
+     */
+
+    renderNewsGrid(
+        uniqueArticles
+    );
+
+
+    /*
+     * Section columns
+     */
+
+    renderSmallSections(
+        uniqueArticles
+    );
+
+
+    /*
+     * World section
+     */
+
+    renderWorldNews();
+
+
+    /*
+     * Update section title.
+     */
+
+    const heading =
+        document.querySelector(
+            ".news-grid-section .section-heading h2"
+        );
+
+    if (heading) {
+
+        heading.textContent =
+            category === "BREAKING"
+                ? "BREAKING NEWS"
+                : category === "BATTLE"
+                    ? "BATTLE COVERAGE"
+                    : category === "NPC LIFE"
+                        ? "NPC LIFE"
+                        : category === "DAMAGE"
+                            ? "DAMAGE REPORTS"
+                            : category === "BUSINESS"
+                                ? "BUSINESS & ECONOMY"
+                                : category === "TRANSPORT"
+                                    ? "TRANSPORT & INFRASTRUCTURE"
+                                    : category === "HOUSING"
+                                        ? "HOUSING & RESIDENTS"
+                                        : category === "HEALTH"
+                                            ? "HEALTH & EMERGENCY SERVICES"
+                                            : "LATEST REPORTS";
+    }
+
+
+    const subtitle =
+        document.querySelector(
+            ".news-grid-section .section-heading span"
+        );
+
+    if (subtitle) {
+
+        subtitle.textContent =
+            formatNumber(
+                uniqueArticles.length
+            ) +
+            " REPORTS";
+    }
+}
+
+
+/* =========================================================
+   WORLDS PAGE
+========================================================= */
+
+function renderWorldsPage() {
+
+    showHomepage();
+
+    updateActiveNavigation(
+        "WORLDS"
+    );
+
+
+    const worlds =
+        [...new Set(
+            ALL_EVENTS.map(
+                event => event.world
+            )
+        )];
+
+
+    /*
+     * Hide normal homepage sections.
+     */
+
+    const leadSection =
+        document.querySelector(
+            ".lead-section"
+        );
+
+    const gridSection =
+        document.querySelector(
+            ".news-grid-section"
+        );
+
+    const threeColumn =
+        document.querySelector(
+            ".three-column"
+        );
+
+    const worldsSection =
+        document.querySelector(
+            ".worlds-section"
+        );
+
+
+    if (leadSection) {
+        leadSection.style.display =
+            "none";
+    }
+
+    if (gridSection) {
+        gridSection.style.display =
+            "none";
+    }
+
+    if (threeColumn) {
+        threeColumn.style.display =
+            "none";
+    }
+
+    if (worldsSection) {
+        worldsSection.style.display =
+            "block";
+    }
+
+
+    const heading =
+        document.querySelector(
+            ".worlds-section .section-heading h2"
+        );
+
+    if (heading) {
+
+        heading.textContent =
+            "ALL FICTIONAL WORLDS";
+    }
+
+
+    worldNews.innerHTML =
+        worlds.map(world => {
+
+            const event =
+                ALL_EVENTS.find(
+                    item =>
+                        item.world === world
+                );
+
+            const articles =
+                getArticlesForEvent(
+                    event.id
+                );
+
+            return `
+
+                <article
+                    class="world-card"
+                    data-event-id="${escapeHTML(event.id)}"
+                    data-article-id="${
+                        escapeHTML(
+                            articles[0]?.id || ""
+                        )
+                    }"
+                    tabindex="0"
+                    role="button">
+
+                    <div class="article-label">
+                        WORLD
+                    </div>
+
+                    <h2>
+                        ${escapeHTML(
+                            world
+                        )}
+                    </h2>
+
+                    <strong>
+                        ${escapeHTML(
+                            event.location
+                        )}
+                    </strong>
+
+                    <p>
+                        ${escapeHTML(
+                            event.title
+                        )}
+                    </p>
+
+                    <div class="article-meta">
+
+                        ${
+                            articles.length
+                        }
+                        reports
+
+                        •
+
+                        ${
+                            formatNumber(
+                                event.damage
+                                    .npc_affected
+                            )
+                        }
+                        NPCs affected
+
+                    </div>
+
+                </article>
+
+            `;
+
+        }).join("");
+}
+
+
+/* =========================================================
+   RESTORE NORMAL HOMEPAGE SECTIONS
+========================================================= */
+
+function restoreHomepageSections() {
+
+    const leadSection =
+        document.querySelector(
+            ".lead-section"
+        );
+
+    const gridSection =
+        document.querySelector(
+            ".news-grid-section"
+        );
+
+    const threeColumn =
+        document.querySelector(
+            ".three-column"
+        );
+
+    const worldsSection =
+        document.querySelector(
+            ".worlds-section"
+        );
+
+
+    if (leadSection) {
+        leadSection.style.display =
+            "";
+    }
+
+    if (gridSection) {
+        gridSection.style.display =
+            "";
+    }
+
+    if (threeColumn) {
+        threeColumn.style.display =
+            "";
+    }
+
+    if (worldsSection) {
+        worldsSection.style.display =
+            "";
+    }
+}
+
+
+/* =========================================================
+   ACTIVE NAVIGATION
+========================================================= */
+
+function updateActiveNavigation(
+    category
+) {
+
+    document
+        .querySelectorAll(
+            ".main-nav a[data-category]"
+        )
+        .forEach(link => {
+
+            const linkCategory =
+                String(
+                    link.dataset.category ||
+                    ""
+                ).toUpperCase();
+
+
+            link.classList.toggle(
+                "active",
+                linkCategory ===
+                category
+            );
+        });
+}
+
+
+/* =========================================================
+   INCIDENT
+========================================================= */
 
 function openIncident(
     eventId,
-    selectedArticleId = null
+    articleId = null
 ) {
-
-    if (!eventId) {
-        console.error(
-            "Missing event ID."
-        );
-        return;
-    }
-
 
     const event =
         getEvent(eventId);
 
-
     if (!event) {
 
         console.error(
-            "Could not find event:",
+            "Event not found:",
             eventId
-        );
-
-        console.log(
-            "Available events:",
-            allEvents
-        );
-
-        alert(
-            "Incident data could not be found for this report."
         );
 
         return;
-
     }
 
 
-    currentEvent =
-        event;
-
-
-    const selectedArticle =
-        allArticles.find(
-            article =>
-                String(article.id) ===
-                String(selectedArticleId)
+    const eventArticles =
+        getArticlesForEvent(
+            eventId
         );
 
 
-    currentArticle =
-        selectedArticle ||
-        getEventArticles(eventId)[0] ||
-        null;
+    let article =
+        articleId
+            ? getArticle(articleId)
+            : null;
 
 
-    const newHash =
+    /*
+     * Make sure selected article
+     * actually belongs to this event.
+     */
+
+    if (
+        !article ||
+        String(article.event_id) !==
+        String(eventId)
+    ) {
+
+        article =
+            eventArticles.find(
+                item =>
+                    item.type ===
+                    "BREAKING"
+            ) ||
+            eventArticles[0];
+    }
+
+
+    currentEventId =
+        event.id;
+
+    currentArticleId =
+        article?.id || null;
+
+
+    /*
+     * IMPORTANT:
+     * Store article ID in hash.
+     *
+     * Example:
+     *
+     * #incident/river-market/article123
+     */
+
+    const hash =
         "#incident/" +
         encodeURIComponent(
-            eventId
+            event.id
+        ) +
+        (
+            article?.id
+                ? "/" +
+                  encodeURIComponent(
+                      article.id
+                  )
+                : ""
         );
 
 
     if (
-        window.location.hash !==
-        newHash
+        window.location.hash !== hash
     ) {
 
-        window.location.hash =
-            "incident/" +
-            encodeURIComponent(
-                eventId
-            );
-
+        history.pushState(
+            {
+                eventId: event.id,
+                articleId:
+                    article?.id || null
+            },
+            "",
+            hash
+        );
     }
+
+
+    showIncidentPage();
 
 
     renderIncident(
         event,
-        currentArticle
+        article
     );
-
 }
 
 
-/* ============================================================
-   GET EVENT
-   ============================================================ */
-
-function getEvent(eventId) {
-
-    if (!eventId) {
-        return null;
-    }
-
-
-    return allEvents.find(
-        event =>
-            String(event.id) ===
-            String(eventId)
-    ) || null;
-
-}
-
-
-/* ============================================================
+/* =========================================================
    RENDER INCIDENT
-   ============================================================ */
+========================================================= */
 
 function renderIncident(
-    event,
-    selectedArticle
-) {
-
-    const homepage =
-        document.getElementById(
-            "homepage"
-        );
-
-
-    const incidentPage =
-        document.getElementById(
-            "incidentPage"
-        );
-
-
-    if (!homepage || !incidentPage) {
-
-        console.error(
-            "Incident page elements are missing."
-        );
-
-        return;
-
-    }
-
-
-    homepage.style.display =
-        "none";
-
-
-    incidentPage.style.display =
-        "block";
-
-
-    window.scrollTo(
-        {
-            top: 0,
-            behavior: "instant"
-        }
-    );
-
-
-    const article =
-        selectedArticle || {};
-
-
-    setText(
-        "incidentCategory",
-        article.category ||
-        "INCIDENT"
-    );
-
-
-    setText(
-        "incidentWorld",
-        `${event.world} • ${event.location}`
-    );
-
-
-    setText(
-        "incidentHeadline",
-        article.headline ||
-        event.title ||
-        buildDefaultHeadline(event)
-    );
-
-
-    setText(
-        "incidentSummary",
-        article.summary ||
-        buildIncidentSummary(event)
-    );
-
-
-    setText(
-        "incidentMeta",
-        buildMeta({
-            ...article,
-            world:
-                article.world ||
-                event.world,
-
-            location:
-                article.location ||
-                event.location
-        })
-    );
-
-
-    setHTML(
-        "incidentOverview",
-        buildOverview(
-            event,
-            article
-        )
-    );
-
-
-    renderCharacters(event);
-
-    renderTimeline(event);
-
-    setHTML(
-        "incidentBattle",
-        buildBattleText(event)
-    );
-
-    renderDamage(event);
-
-    renderNPCImpact(event);
-
-    renderQuotes(event);
-
-    renderAftermath(event);
-
-    renderRelated(event.id);
-
-    renderFacts(event);
-
-    renderWinner(event);
-
-}
-
-
-/* ============================================================
-   OVERVIEW
-   ============================================================ */
-
-function buildOverview(
     event,
     article
 ) {
 
-    const damage =
-        event.damage || {};
+    const category =
+        article?.category ||
+        event.category ||
+        "INCIDENT";
 
 
-    const consequences =
-        event.consequences || {};
+    const headline =
+        article?.headline ||
+        event.title ||
+        "Incident";
+
+
+    const summary =
+        article?.summary ||
+        event.overview ||
+        "";
+
+
+    const world =
+        event.world ||
+        article?.world ||
+        "UNKNOWN WORLD";
+
+
+    const location =
+        event.location ||
+        article?.location ||
+        "";
+
+
+    document.getElementById(
+        "incidentCategory"
+    ).textContent =
+        category;
+
+
+    document.getElementById(
+        "incidentWorld"
+    ).textContent =
+        world +
+        (
+            location
+                ? " • " + location
+                : ""
+        );
+
+
+    document.getElementById(
+        "incidentHeadline"
+    ).textContent =
+        headline;
+
+
+    document.getElementById(
+        "incidentSummary"
+    ).textContent =
+        summary;
+
+
+    document.getElementById(
+        "incidentMeta"
+    ).innerHTML = `
+
+        ${
+            escapeHTML(
+                event.world
+            )
+        }
+
+        •
+
+        ${
+            escapeHTML(
+                event.location
+            )
+        }
+
+        •
+
+        Duration:
+        ${
+            escapeHTML(
+                event.duration
+            )
+        }
+
+        •
+
+        ${
+            formatDate(
+                article?.published
+            )
+        }
+
+    `;
 
 
     /*
-     FIX:
-     Prefer the general incident overview.
+     * Overview
+     */
 
-     Before:
-     article.body was always used first.
-
-     That meant clicking an EMPLOYMENT article
-     made the entire incident overview begin
-     with the employment story.
-
-     Now:
-     event.overview is preferred.
-    */
-
-    const overviewText =
-        event.overview ||
-        article.body ||
-        `The incident took place in ${event.location} within the ${event.world}. The confrontation involved ${formatCharacters(event)} and lasted ${event.duration}.`;
-
-
-    return `
+    document.getElementById(
+        "incidentOverview"
+    ).innerHTML = `
 
         <p>
-            ${escapeHTML(
-                overviewText
-            )}
-        </p>
 
-        <p>
-            Initial assessments indicate that
-            approximately
-            <strong>
-                ${formatNumber(
-                    damage.npc_affected
-                )}
-            </strong>
-            NPCs were directly or indirectly
-            affected by the incident.
-        </p>
+            ${
+                escapeHTML(
+                    event.overview ||
+                    article?.body ||
+                    summary
+                )
+            }
 
-        <p>
-            Local services reported
-            ${escapeHTML(
-                consequences.utilities
-            )}
         </p>
 
     `;
 
+
+    /*
+     * Characters
+     */
+
+    renderCharacters(
+        event
+    );
+
+
+    /*
+     * Timeline
+     */
+
+    renderTimeline(
+        event
+    );
+
+
+    /*
+     * Battle
+     */
+
+    document.getElementById(
+        "incidentBattle"
+    ).innerHTML = `
+
+        <p>
+
+            ${
+                escapeHTML(
+                    event.battle_summary ||
+                    article?.body ||
+                    "Battle details are still being reported."
+                )
+            }
+
+        </p>
+
+    `;
+
+
+    /*
+     * Damage
+     */
+
+    renderDamage(
+        event
+    );
+
+
+    /*
+     * NPC Impact
+     */
+
+    renderNPCImpact(
+        event
+    );
+
+
+    /*
+     * Quotes
+     */
+
+    renderQuotes(
+        event
+    );
+
+
+    /*
+     * Aftermath
+     */
+
+    document.getElementById(
+        "incidentAftermath"
+    ).innerHTML = `
+
+        <p>
+
+            ${
+                escapeHTML(
+                    event.aftermath ||
+                    "Authorities are continuing to assess the aftermath."
+                )
+            }
+
+        </p>
+
+    `;
+
+
+    /*
+     * Related coverage
+     */
+
+    renderRelatedArticles(
+        event
+    );
+
+
+    /*
+     * Facts
+     */
+
+    renderFacts(
+        event
+    );
+
+
+    /*
+     * Winner
+     */
+
+    const winner =
+        document.getElementById(
+            "incidentWinner"
+        );
+
+    if (winner) {
+
+        winner.innerHTML = `
+
+            <strong>
+                ${
+                    escapeHTML(
+                        event.winner
+                    )
+                }
+            </strong>
+
+            <p>
+                Officially recorded winner.
+            </p>
+
+        `;
+    }
+
+
+    /*
+     * Scroll to top.
+     */
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
 
-/* ============================================================
+/* =========================================================
    CHARACTERS
-   ============================================================ */
+========================================================= */
 
-function renderCharacters(event) {
+function renderCharacters(
+    event
+) {
 
     const container =
         document.getElementById(
             "incidentCharacters"
         );
 
-
     if (!container) {
         return;
     }
@@ -1844,211 +2513,167 @@ function renderCharacters(event) {
         event.characters || [];
 
 
+    if (!characters.length) {
+
+        container.innerHTML =
+            `<p>No character information available.</p>`;
+
+        return;
+    }
+
+
     container.innerHTML =
         characters.map(
-            (character, index) => `
+            character => {
 
-                <div class="character-card">
+                if (
+                    typeof character ===
+                    "string"
+                ) {
 
-                    <small>
+                    return `
+                        <div class="character-card">
+                            <strong>
+                                ${escapeHTML(
+                                    character
+                                )}
+                            </strong>
+                        </div>
+                    `;
+                }
+
+
+                return `
+
+                    <div class="character-card">
+
+                        <strong>
+                            ${escapeHTML(
+                                character.name ||
+                                "Unknown"
+                            )}
+                        </strong>
+
                         ${
-                            index === 0
-                                ? "PRIMARY COMBATANT"
-                                : "OPPOSING COMBATANT"
+                            character.role
+                                ? `
+                                    <span>
+                                        ${escapeHTML(
+                                            character.role
+                                        )}
+                                    </span>
+                                `
+                                : ""
                         }
-                    </small>
 
-                    <h3>
-                        ${escapeHTML(character)}
-                    </h3>
+                    </div>
 
-                    <p>
-                        ${
-                            String(character)
-                            ===
-                            String(event.winner)
-                                ? "Reported winner of the confrontation."
-                                : "Reported opposing participant in the incident."
-                        }
-                    </p>
-
-                </div>
-
-            `
+                `;
+            }
         ).join("");
-
 }
 
 
-/* ============================================================
+/* =========================================================
    TIMELINE
-   ============================================================ */
+========================================================= */
 
-function renderTimeline(event) {
+function renderTimeline(
+    event
+) {
 
     const container =
         document.getElementById(
             "incidentTimeline"
         );
 
-
     if (!container) {
         return;
     }
 
 
-    let timeline =
-        Array.isArray(event.timeline)
-            ? event.timeline
-            : [];
+    const timeline =
+        event.timeline || [];
 
 
     if (!timeline.length) {
 
-        timeline = [
+        container.innerHTML =
+            `<p>No detailed timeline available.</p>`;
 
-            {
-                time: "START",
-                title: "Incident begins",
-                text:
-                    `${formatCharacters(event)} are reported to have begun their confrontation in ${event.location}.`
-            },
-
-            {
-                time: "DURING",
-                title: "Battle expands",
-                text:
-                    `The confrontation continues for ${event.duration}, affecting surrounding infrastructure and civilian activity.`
-            },
-
-            {
-                time: "RESPONSE",
-                title: "Emergency response begins",
-                text:
-                    `Emergency crews begin assessing the ${formatNumber(event.damage.npc_affected)} NPCs affected and the damage reported across ${event.location}.`
-            },
-
-            {
-                time: "END",
-                title: "Confrontation ends",
-                text:
-                    `${event.winner} is reported as the winner after ${event.duration}.`
-            }
-
-        ];
-
+        return;
     }
 
 
     container.innerHTML =
-        timeline.map(item => `
+        timeline.map(
+            item => {
 
-            <div class="timeline-item">
+                if (
+                    typeof item ===
+                    "string"
+                ) {
 
-                <div class="timeline-time">
-                    ${escapeHTML(
-                        item.time ||
-                        ""
-                    )}
-                </div>
+                    return `
 
-                <div class="timeline-dot"></div>
+                        <div class="timeline-item">
 
-                <div class="timeline-content">
+                            <div>
+                                ${escapeHTML(
+                                    item
+                                )}
+                            </div>
 
-                    <h3>
-                        ${escapeHTML(
-                            item.title ||
-                            ""
-                        )}
-                    </h3>
+                        </div>
 
-                    <p>
-                        ${escapeHTML(
-                            item.text ||
-                            ""
-                        )}
-                    </p>
+                    `;
+                }
 
-                </div>
 
-            </div>
+                return `
 
-        `).join("");
+                    <div class="timeline-item">
 
+                        ${
+                            item.time
+                                ? `
+                                    <strong>
+                                        ${escapeHTML(
+                                            item.time
+                                        )}
+                                    </strong>
+                                `
+                                : ""
+                        }
+
+                        <div>
+                            ${escapeHTML(
+                                item.description ||
+                                item.text ||
+                                ""
+                            )}
+                        </div>
+
+                    </div>
+
+                `;
+            }
+        ).join("");
 }
 
 
-/* ============================================================
-   BATTLE
-   ============================================================ */
-
-function buildBattleText(event) {
-
-    const characters =
-        event.characters || [];
-
-
-    return `
-
-        <p>
-            The confrontation involved
-            <strong>
-                ${escapeHTML(
-                    characters[0] ||
-                    "an unidentified combatant"
-                )}
-            </strong>
-            and
-            <strong>
-                ${escapeHTML(
-                    characters[1] ||
-                    "an unidentified opponent"
-                )}
-            </strong>.
-        </p>
-
-        <p>
-            The reported duration was
-            <strong>
-                ${escapeHTML(
-                    event.duration
-                )}
-            </strong>.
-        </p>
-
-        <p>
-            ${escapeHTML(
-                event.battle_summary ||
-                `The confrontation caused damage across ${event.location}, affecting buildings, roads, vehicles, businesses and essential services.`
-            )}
-        </p>
-
-        <p>
-            The reported winner was
-            <strong>
-                ${escapeHTML(
-                    event.winner
-                )}
-            </strong>.
-        </p>
-
-    `;
-
-}
-
-
-/* ============================================================
+/* =========================================================
    DAMAGE
-   ============================================================ */
+========================================================= */
 
-function renderDamage(event) {
+function renderDamage(
+    event
+) {
 
     const container =
         document.getElementById(
             "damageGrid"
         );
-
 
     if (!container) {
         return;
@@ -2059,45 +2684,45 @@ function renderDamage(event) {
         event.damage || {};
 
 
-    const items = [
+    const cards = [
 
         [
-            "BUILDINGS",
+            "Buildings",
             damage.buildings
         ],
 
         [
-            "ROADS",
+            "Roads",
             damage.roads
         ],
 
         [
-            "VEHICLES",
+            "Vehicles",
             damage.vehicles
         ],
 
         [
-            "BUSINESSES",
+            "Businesses",
             damage.businesses
         ],
 
         [
-            "NPCs AFFECTED",
+            "NPCs Affected",
             damage.npc_affected
         ],
 
         [
-            "INJURIES",
+            "Injuries",
             damage.injuries
         ],
 
         [
-            "MISSING",
+            "Missing",
             damage.missing
         ],
 
         [
-            "DISPLACED",
+            "Displaced",
             damage.displaced
         ]
 
@@ -2105,7 +2730,7 @@ function renderDamage(event) {
 
 
     container.innerHTML =
-        items.map(
+        cards.map(
             ([label, value]) => `
 
                 <div class="damage-card">
@@ -2115,70 +2740,59 @@ function renderDamage(event) {
                     </strong>
 
                     <span>
-                        ${label}
+                        ${escapeHTML(label)}
                     </span>
 
                 </div>
 
             `
         ).join("");
-
 }
 
 
-/* ============================================================
+/* =========================================================
    NPC IMPACT
-   ============================================================ */
+========================================================= */
 
-function renderNPCImpact(event) {
+function renderNPCImpact(
+    event
+) {
 
     const container =
         document.getElementById(
             "npcImpact"
         );
 
-
     if (!container) {
         return;
     }
 
 
-    const consequences =
+    const c =
         event.consequences || {};
 
 
-    const items = [
+    const cards = [
 
         [
-            "TRANSPORT",
-            `${formatNumber(
-                consequences.transport_routes
-            )} routes affected`
+            "Transport Routes",
+            c.transport_routes
         ],
 
         [
-            "SCHOOLS",
-            `${formatNumber(
-                consequences.schools_closed
-            )} schools closed`
+            "Schools Closed",
+            c.schools_closed
         ],
 
         [
-            "HOSPITALS",
-            `${formatNumber(
-                consequences.hospitals_affected
-            )} hospitals affected`
+            "Hospitals Affected",
+            c.hospitals_affected
         ],
 
         [
-            "UTILITIES",
-            consequences.utilities
-        ],
-
-        [
-            "ECONOMIC LOSS",
+            "Economic Loss",
             formatCurrency(
-                consequences.economic_loss
+                c.economic_loss
             )
         ]
 
@@ -2186,40 +2800,65 @@ function renderNPCImpact(event) {
 
 
     container.innerHTML =
-        items.map(
-            ([title, text]) => `
+        cards.map(
+            ([label, value]) => `
 
                 <div class="impact-card">
 
-                    <h3>
-                        ${escapeHTML(title)}
-                    </h3>
+                    <strong>
+                        ${
+                            typeof value ===
+                            "number"
+                                ? formatNumber(value)
+                                : escapeHTML(value)
+                        }
+                    </strong>
 
-                    <p>
-                        ${escapeHTML(
-                            String(text)
-                        )}
-                    </p>
+                    <span>
+                        ${escapeHTML(label)}
+                    </span>
 
                 </div>
 
             `
         ).join("");
 
+
+    if (c.utilities) {
+
+        container.innerHTML += `
+
+            <div class="impact-card wide">
+
+                <strong>
+                    Utilities
+                </strong>
+
+                <span>
+                    ${escapeHTML(
+                        c.utilities
+                    )}
+                </span>
+
+            </div>
+
+        `;
+    }
 }
 
 
-/* ============================================================
-   QUOTES
-   ============================================================ */
+/* =========================================================
+   NPC QUOTES
+========================================================= */
 
-function renderQuotes(event) {
+function renderQuotes(
+    event
+) {
 
     const container =
         document.getElementById(
             "npcQuotes"
         );
-
 
     if (!container) {
         return;
@@ -2233,154 +2872,79 @@ function renderQuotes(event) {
     if (!quotes.length) {
 
         container.innerHTML =
-            `<p class="no-quotes">
-                No direct resident statements have been published yet.
-            </p>`;
+            `<p>No resident interviews available.</p>`;
 
         return;
-
     }
 
 
     container.innerHTML =
         quotes.map(
-            quote => `
+            quote => {
 
-                <blockquote>
+                if (
+                    typeof quote ===
+                    "string"
+                ) {
 
-                    “${escapeHTML(
-                        quote
-                    )}”
+                    return `
 
-                    <cite>
-                        — Local resident
-                    </cite>
+                        <blockquote>
+                            “${escapeHTML(
+                                quote
+                            )}”
+                        </blockquote>
 
-                </blockquote>
+                    `;
+                }
 
-            `
+
+                return `
+
+                    <blockquote>
+
+                        <p>
+                            “${escapeHTML(
+                                quote.text ||
+                                quote.quote ||
+                                ""
+                            )}”
+                        </p>
+
+                        ${
+                            quote.name
+                                ? `
+                                    <cite>
+                                        — ${
+                                            escapeHTML(
+                                                quote.name
+                                            )
+                                        }
+                                    </cite>
+                                `
+                                : ""
+                        }
+
+                    </blockquote>
+
+                `;
+            }
         ).join("");
-
 }
 
 
-/* ============================================================
-   AFTERMATH
-   ============================================================ */
+/* =========================================================
+   RELATED ARTICLES
+========================================================= */
 
-function renderAftermath(event) {
-
-    const container =
-        document.getElementById(
-            "incidentAftermath"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    const aftermath =
-        event.aftermath;
-
-
-    if (
-        typeof aftermath ===
-        "string"
-    ) {
-
-        container.innerHTML =
-            `<p>${escapeHTML(
-                aftermath
-            )}</p>
-
-            <div class="aftermath-warning">
-                THE BATTLE IS OVER.
-                THE CONSEQUENCES ARE NOT.
-            </div>`;
-
-        return;
-
-    }
-
-
-    if (
-        aftermath &&
-        typeof aftermath ===
-        "object"
-    ) {
-
-        container.innerHTML = `
-
-            <p>
-                ${escapeHTML(
-                    aftermath.immediate ||
-                    ""
-                )}
-            </p>
-
-            <p>
-                ${escapeHTML(
-                    aftermath.short_term ||
-                    ""
-                )}
-            </p>
-
-            <p>
-                ${escapeHTML(
-                    aftermath.long_term ||
-                    ""
-                )}
-            </p>
-
-            <div class="aftermath-warning">
-                THE BATTLE IS OVER.
-                THE CONSEQUENCES ARE NOT.
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    container.innerHTML = `
-
-        <p>
-            Emergency services are continuing
-            to assess the affected area.
-        </p>
-
-        <p>
-            Infrastructure repairs,
-            business recovery and civilian
-            relocation are expected to continue
-            after the confrontation.
-        </p>
-
-        <div class="aftermath-warning">
-            THE BATTLE IS OVER.
-            THE CONSEQUENCES ARE NOT.
-        </div>
-
-    `;
-
-}
-
-
-/* ============================================================
-   RELATED
-   ============================================================ */
-
-function renderRelated(eventId) {
+function renderRelatedArticles(
+    event
+) {
 
     const container =
         document.getElementById(
             "relatedArticles"
         );
-
 
     if (!container) {
         return;
@@ -2388,60 +2952,36 @@ function renderRelated(eventId) {
 
 
     const articles =
-        getEventArticles(
-            eventId
-        );
+        uniqueByHeadline(
+            getArticlesForEvent(
+                event.id
+            )
+        ).slice(0, 12);
 
 
     container.innerHTML =
-        articles.map(article => `
-
-            <article
-                class="related-card clickable"
-                data-event-id="${escapeAttribute(article.event_id)}"
-                data-article-id="${escapeAttribute(article.id)}"
-            >
-
-                <small>
-                    ${escapeHTML(
-                        article.category
-                    )}
-                </small>
-
-                <h3>
-                    ${escapeHTML(
-                        article.headline
-                    )}
-                </h3>
-
-                <p>
-                    ${escapeHTML(
-                        article.summary
-                    )}
-                </p>
-
-                <div class="read-more">
-                    READ THIS REPORT →
-                </div>
-
-            </article>
-
-        `).join("");
-
+        articles.map(
+            article =>
+                articleCard(
+                    article,
+                    "small"
+                )
+        ).join("");
 }
 
 
-/* ============================================================
-   FACTS
-   ============================================================ */
+/* =========================================================
+   INCIDENT FACTS
+========================================================= */
 
-function renderFacts(event) {
+function renderFacts(
+    event
+) {
 
     const container =
         document.getElementById(
             "incidentFacts"
         );
-
 
     if (!container) {
         return;
@@ -2458,9 +2998,9 @@ function renderFacts(event) {
 
     container.innerHTML = `
 
-        <div class="fact">
+        <div class="fact-row">
 
-            <span>WORLD</span>
+            <span>World</span>
 
             <strong>
                 ${escapeHTML(
@@ -2471,9 +3011,9 @@ function renderFacts(event) {
         </div>
 
 
-        <div class="fact">
+        <div class="fact-row">
 
-            <span>LOCATION</span>
+            <span>Location</span>
 
             <strong>
                 ${escapeHTML(
@@ -2484,9 +3024,9 @@ function renderFacts(event) {
         </div>
 
 
-        <div class="fact">
+        <div class="fact-row">
 
-            <span>DURATION</span>
+            <span>Duration</span>
 
             <strong>
                 ${escapeHTML(
@@ -2497,9 +3037,48 @@ function renderFacts(event) {
         </div>
 
 
-        <div class="fact">
+        <div class="fact-row">
 
-            <span>NPCs AFFECTED</span>
+            <span>Buildings</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.buildings
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>Roads</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.roads
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>Vehicles</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.vehicles
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>NPCs Affected</span>
 
             <strong>
                 ${formatNumber(
@@ -2510,9 +3089,48 @@ function renderFacts(event) {
         </div>
 
 
-        <div class="fact">
+        <div class="fact-row">
 
-            <span>ECONOMIC LOSS</span>
+            <span>Injuries</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.injuries
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>Missing</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.missing
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>Displaced</span>
+
+            <strong>
+                ${formatNumber(
+                    damage.displaced
+                )}
+            </strong>
+
+        </div>
+
+
+        <div class="fact-row">
+
+            <span>Economic Loss</span>
 
             <strong>
                 ${formatCurrency(
@@ -2523,724 +3141,413 @@ function renderFacts(event) {
         </div>
 
     `;
-
 }
 
 
-/* ============================================================
-   WINNER
-   ============================================================ */
+/* =========================================================
+   CLICK HANDLING
+========================================================= */
 
-function renderWinner(event) {
+function setupGlobalClicks() {
 
-    const container =
-        document.getElementById(
-            "incidentWinner"
-        );
+    document.addEventListener(
+        "click",
+        function(event) {
 
+            /*
+             * Find nearest article/card
+             * carrying event information.
+             */
 
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="winner-name">
-            ${escapeHTML(
-                event.winner
-            )}
-        </div>
-
-        <div class="winner-duration">
-            Reported duration:
-            ${escapeHTML(
-                event.duration
-            )}
-        </div>
-
-    `;
-
-}
+            const target =
+                event.target.closest(
+                    "[data-event-id]"
+                );
 
 
-/* ============================================================
-   GET ARTICLES FOR EVENT
-   ============================================================ */
-
-function getEventArticles(eventId) {
-
-    return allArticles
-        .filter(
-            article =>
-                String(
-                    article.event_id
-                ) ===
-                String(eventId)
-        )
-        .sort(sortByDate);
-
-}
-
-
-/* ============================================================
-   CREATE EVENTS FROM ARTICLES
-   ============================================================ */
-
-function createEventsFromArticles() {
-
-    const map = {};
-
-
-    allArticles.forEach(article => {
-
-        const eventId =
-            article.event_id;
-
-
-        if (!eventId) {
-            return;
-        }
-
-
-        if (!map[eventId]) {
-
-            if (article.event) {
-
-                map[eventId] =
-                    normalizeEvent(
-                        article.event
-                    );
-
-            } else {
-
-                /*
-                 FIX:
-                 This fallback now understands all of the
-                 incident fields that generate.py will put
-                 into every article.
-                */
-
-                map[eventId] =
-                    normalizeEvent({
-
-                        id:
-                            eventId,
-
-                        world:
-                            article.world ||
-                            "UNKNOWN WORLD",
-
-                        location:
-                            article.location ||
-                            "UNKNOWN LOCATION",
-
-                        characters:
-                            article.characters ||
-                            [],
-
-                        winner:
-                            article.winner ||
-                            "UNCONFIRMED",
-
-                        duration:
-                            article.duration ||
-                            "UNKNOWN",
-
-                        damage:
-                            article.damage ||
-                            {},
-
-                        consequences:
-                            article.consequences ||
-                            {},
-
-                        npc_quotes:
-                            article.npc_quotes ||
-                            [],
-
-                        timeline:
-                            article.timeline ||
-                            [],
-
-                        aftermath:
-                            article.aftermath ||
-                            null,
-
-                        battle_summary:
-                            article.battle_summary ||
-                            "",
-
-                        overview:
-                            article.overview ||
-                            ""
-
-                    });
-
+            if (!target) {
+                return;
             }
 
-        }
 
-    });
+            /*
+             * Do not intercept navigation links.
+             */
 
-
-    return Object.values(map);
-
-}
-
-
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
-
-function setupNavigation() {
-
-    document
-        .querySelectorAll(
-            ".main-nav a"
-        )
-        .forEach(link => {
-
-            link.addEventListener(
-                "click",
-                event => {
-
-                    event.preventDefault();
+            if (
+                target.tagName === "A" ||
+                target.closest("a")
+            ) {
+                return;
+            }
 
 
-                    const category =
-                        link.dataset.category;
+            /*
+             * Do not intercept buttons.
+             */
+
+            if (
+                target.tagName === "BUTTON" ||
+                target.closest("button")
+            ) {
+                return;
+            }
 
 
-                    if (
-                        category === "ALL" ||
-                        category === "WORLDS"
-                    ) {
+            const eventId =
+                target.dataset.eventId;
 
-                        showHomepage();
-
-                        return;
-
-                    }
+            const articleId =
+                target.dataset.articleId ||
+                null;
 
 
-                    const filtered =
-                        allArticles.filter(
-                            article =>
-                                String(
-                                    article.category ||
-                                    ""
-                                ).toUpperCase()
-                                ===
-                                String(
-                                    category
-                                ).toUpperCase()
-                        );
+            if (!eventId) {
+                return;
+            }
 
 
-                    if (!filtered.length) {
-
-                        showHomepage();
-
-                        return;
-
-                    }
-
-
-                    renderFilteredHomepage(
-                        filtered,
-                        category
-                    );
-
-                }
+            openIncident(
+                eventId,
+                articleId
             );
-
-        });
-
-}
-
-
-/* ============================================================
-   FILTERED HOMEPAGE
-   ============================================================ */
-
-function renderFilteredHomepage(
-    articles,
-    category
-) {
-
-    const homepage =
-        document.getElementById(
-            "homepage"
-        );
-
-
-    const incidentPage =
-        document.getElementById(
-            "incidentPage"
-        );
-
-
-    if (homepage) {
-        homepage.style.display =
-            "block";
-    }
-
-
-    if (incidentPage) {
-        incidentPage.style.display =
-            "none";
-    }
-
-
-    const grid =
-        document.getElementById(
-            "newsGrid"
-        );
-
-
-    if (!grid) {
-        return;
-    }
-
-
-    const selected =
-        shuffle(
-            [...articles]
-        ).slice(0, 20);
-
-
-    grid.innerHTML = `
-
-        <div style="
-            grid-column:1/-1;
-            margin-bottom:10px;
-        ">
-
-            <div class="section-heading">
-
-                <h2>
-                    ${escapeHTML(
-                        category
-                    )}
-                </h2>
-
-                <span>
-                    ${articles.length}
-                    REPORTS
-                </span>
-
-            </div>
-
-        </div>
-
-        ${selected.map(article => `
-
-            <article
-                class="news-card clickable"
-                data-event-id="${escapeAttribute(article.event_id)}"
-                data-article-id="${escapeAttribute(article.id)}"
-            >
-
-                <div class="category">
-                    ${escapeHTML(
-                        article.category
-                    )}
-                </div>
-
-                <h3>
-                    ${escapeHTML(
-                        article.headline
-                    )}
-                </h3>
-
-                <p>
-                    ${escapeHTML(
-                        article.summary
-                    )}
-                </p>
-
-                <div class="meta">
-                    ${buildMeta(article)}
-                </div>
-
-                <div class="read-more">
-                    READ MORE →
-                </div>
-
-            </article>
-
-        `).join("")}
-
-    `;
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-}
-
-
-/* ============================================================
-   SHOW HOMEPAGE
-   ============================================================ */
-
-function showHomepage() {
-
-    const homepage =
-        document.getElementById(
-            "homepage"
-        );
-
-
-    const incidentPage =
-        document.getElementById(
-            "incidentPage"
-        );
-
-
-    if (homepage) {
-
-        homepage.style.display =
-            "block";
-
-    }
-
-
-    if (incidentPage) {
-
-        incidentPage.style.display =
-            "none";
-
-    }
-
-
-    if (
-        window.location.hash
-            .startsWith(
-                "#incident/"
-            )
-    ) {
-
-        history.replaceState(
-            null,
-            "",
-            window.location.pathname +
-            window.location.search
-        );
-
-    }
-
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-
-}
-
-
-/* ============================================================
-   BACK BUTTON
-   ============================================================ */
-
-function setupBackButton() {
-
-    const button =
-        document.getElementById(
-            "backButton"
-        );
-
-
-    if (!button) {
-        return;
-    }
-
-
-    button.addEventListener(
-        "click",
-        event => {
-
-            event.preventDefault();
-
-            showHomepage();
-
         }
     );
 
+
+    /*
+     * Keyboard support.
+     */
+
+    document.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key !== "Enter" &&
+                event.key !== " "
+            ) {
+                return;
+            }
+
+
+            const target =
+                document.activeElement;
+
+
+            if (
+                !target ||
+                !target.dataset ||
+                !target.dataset.eventId
+            ) {
+                return;
+            }
+
+
+            event.preventDefault();
+
+
+            openIncident(
+                target.dataset.eventId,
+                target.dataset.articleId ||
+                null
+            );
+        }
+    );
 }
 
 
-/* ============================================================
-   HASH ROUTER
-   ============================================================ */
+/* =========================================================
+   BACK BUTTON
+========================================================= */
+
+function setupBackButton() {
+
+    if (!backButton) {
+        return;
+    }
+
+
+    backButton.addEventListener(
+        "click",
+        function() {
+
+            /*
+             * Browser history is preferable.
+             */
+
+            if (
+                document.referrer &&
+                window.history.length > 1
+            ) {
+
+                history.back();
+
+                return;
+            }
+
+
+            navigateToCategory(
+                currentView || "ALL"
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   NEW LEAD BUTTON
+========================================================= */
+
+function setupNewLead() {
+
+    if (!newLead) {
+        return;
+    }
+
+
+    newLead.addEventListener(
+        "click",
+        function(event) {
+
+            event.stopPropagation();
+
+            renderLead();
+        }
+    );
+}
+
+
+/* =========================================================
+   HASH ROUTING
+========================================================= */
 
 function handleHash() {
 
     const hash =
-        window.location.hash;
+        window.location.hash || "";
 
+
+    /*
+     * HOME
+     */
 
     if (
-        !hash.startsWith(
+        hash === "" ||
+        hash === "#home" ||
+        hash === "#"
+    ) {
+
+        currentView = "ALL";
+
+        restoreHomepageSections();
+
+        renderHomepage();
+
+        return;
+    }
+
+
+    /*
+     * CATEGORY
+     */
+
+    if (
+        hash.startsWith(
+            "#category/"
+        )
+    ) {
+
+        const category =
+            decodeURIComponent(
+                hash
+                    .replace(
+                        "#category/",
+                        ""
+                    )
+            );
+
+
+        currentView =
+            category.toUpperCase();
+
+
+        restoreHomepageSections();
+
+        renderCategoryPage(
+            currentView
+        );
+
+        return;
+    }
+
+
+    /*
+     * INCIDENT
+     *
+     * #incident/eventId/articleId
+     */
+
+    if (
+        hash.startsWith(
             "#incident/"
         )
     ) {
 
-        showHomepage();
+        const parts =
+            hash
+                .replace(
+                    "#incident/",
+                    ""
+                )
+                .split("/");
+
+
+        const eventId =
+            decodeURIComponent(
+                parts[0] || ""
+            );
+
+
+        const articleId =
+            parts[1]
+                ? decodeURIComponent(
+                    parts[1]
+                )
+                : null;
+
+
+        const event =
+            getEvent(eventId);
+
+
+        if (!event) {
+
+            navigateToCategory(
+                "ALL"
+            );
+
+            return;
+        }
+
+
+        currentEventId =
+            eventId;
+
+        currentArticleId =
+            articleId;
+
+
+        const article =
+            articleId
+                ? getArticle(
+                    articleId
+                )
+                : getArticlesForEvent(
+                    eventId
+                )[0];
+
+
+        showIncidentPage();
+
+
+        renderIncident(
+            event,
+            article
+        );
 
         return;
-
     }
 
 
-    const eventId =
-        decodeURIComponent(
-            hash.substring(
-                "#incident/".length
-            )
-        );
+    /*
+     * Unknown hash.
+     */
 
-
-    const event =
-        getEvent(eventId);
-
-
-    if (!event) {
-
-        console.error(
-            "Incident not found:",
-            eventId
-        );
-
-        showHomepage();
-
-        return;
-
-    }
-
-
-    const article =
-        getEventArticles(
-            eventId
-        )[0] || null;
-
-
-    renderIncident(
-        event,
-        article
+    navigateToCategory(
+        "ALL"
     );
-
 }
 
 
-/* ============================================================
-   META
-   ============================================================ */
+/* =========================================================
+   BROWSER BACK / FORWARD
+========================================================= */
 
-function buildMeta(article) {
+window.addEventListener(
+    "popstate",
+    function() {
 
-    if (!article) {
+        handleHash();
+    }
+);
+
+
+window.addEventListener(
+    "hashchange",
+    function() {
+
+        handleHash();
+    }
+);
+
+
+/* =========================================================
+   CATEGORY SEARCH
+========================================================= */
+
+function containsAny(
+    article,
+    keywords
+) {
+
+    const text =
+        (
+            String(
+                article.category || ""
+            ) +
+            " " +
+            String(
+                article.type || ""
+            ) +
+            " " +
+            String(
+                article.headline || ""
+            ) +
+            " " +
+            String(
+                article.summary || ""
+            ) +
+            " " +
+            String(
+                article.body || ""
+            )
+        ).toUpperCase();
+
+
+    return keywords.some(
+        keyword =>
+            text.includes(
+                String(
+                    keyword
+                ).toUpperCase()
+            )
+    );
+}
+
+
+/* =========================================================
+   DATE FORMAT
+========================================================= */
+
+function formatDate(
+    value
+) {
+
+    if (!value) {
         return "";
     }
 
-
-    const parts = [];
-
-
-    if (article.reporter) {
-
-        parts.push(
-            "BY " +
-            String(
-                article.reporter
-            )
-        );
-
-    }
-
-
-    if (article.published) {
-
-        parts.push(
-            formatDate(
-                article.published
-            )
-        );
-
-    }
-
-
-    if (article.world) {
-
-        parts.push(
-            article.world
-        );
-
-    }
-
-
-    if (article.location) {
-
-        parts.push(
-            article.location
-        );
-
-    }
-
-
-    return escapeHTML(
-        parts.join(" • ")
-    );
-
-}
-
-
-/* ============================================================
-   DEFAULT HEADLINE
-   ============================================================ */
-
-function buildDefaultHeadline(event) {
-
-    const characters =
-        event.characters || [];
-
-
-    return `${characters[0] || "Combatant"} defeats ${characters[1] || "opponent"} in ${event.location}`;
-
-}
-
-
-/* ============================================================
-   DEFAULT SUMMARY
-   ============================================================ */
-
-function buildIncidentSummary(event) {
-
-    return `The ${event.duration} confrontation in ${event.location} has ended, leaving ${formatNumber(event.damage.npc_affected)} NPCs affected and local infrastructure dealing with the aftermath.`;
-
-}
-
-
-/* ============================================================
-   CHARACTERS TEXT
-   ============================================================ */
-
-function formatCharacters(event) {
-
-    return (event.characters || [])
-        .map(
-            character =>
-                escapeHTML(
-                    character
-                )
-        )
-        .join(" and ");
-
-}
-
-
-/* ============================================================
-   SORT
-   ============================================================ */
-
-function sortByDate(a, b) {
-
-    const dateA =
-        new Date(
-            a.published ||
-            a.date ||
-            0
-        ).getTime();
-
-
-    const dateB =
-        new Date(
-            b.published ||
-            b.date ||
-            0
-        ).getTime();
-
-
-    return dateB - dateA;
-
-}
-
-
-/* ============================================================
-   NUMBER
-   ============================================================ */
-
-function numberOrZero(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-
-        return 0;
-
-    }
-
-
-    const number =
-        Number(
-            String(value)
-                .replace(/,/g, "")
-                .replace(/[^\d.-]/g, "")
-        );
-
-
-    return Number.isFinite(number)
-        ? number
-        : 0;
-
-}
-
-
-/* ============================================================
-   FORMAT NUMBER
-   ============================================================ */
-
-function formatNumber(value) {
-
-    return numberOrZero(
-        value
-    ).toLocaleString(
-        "en-IN"
-    );
-
-}
-
-
-/* ============================================================
-   FORMAT CURRENCY
-   ============================================================ */
-
-function formatCurrency(value) {
-
-    const number =
-        numberOrZero(
-            value
-        );
-
-
-    return "₹" +
-        number.toLocaleString(
-            "en-IN"
-        );
-
-}
-
-
-/* ============================================================
-   FORMAT DATE
-   ============================================================ */
-
-function formatDate(value) {
 
     const date =
         new Date(value);
@@ -3252,10 +3559,7 @@ function formatDate(value) {
         )
     ) {
 
-        return String(
-            value
-        );
-
+        return String(value);
     }
 
 
@@ -3269,228 +3573,25 @@ function formatDate(value) {
             minute: "2-digit"
         }
     );
-
 }
 
 
-/* ============================================================
-   RANDOM
-   ============================================================ */
+/* =========================================================
+   STARTUP
+========================================================= */
 
-function randomItem(array) {
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
 
-    if (!array || !array.length) {
-        return null;
+        updateDate();
+
+        setupGlobalClicks();
+
+        setupBackButton();
+
+        setupNewLead();
+
+        loadNews();
     }
-
-
-    return array[
-        Math.floor(
-            Math.random() *
-            array.length
-        )
-    ];
-
-}
-
-
-/* ============================================================
-   SHUFFLE
-   ============================================================ */
-
-function shuffle(array) {
-
-    for (
-        let i = array.length - 1;
-        i > 0;
-        i--
-    ) {
-
-        const j =
-            Math.floor(
-                Math.random() *
-                (i + 1)
-            );
-
-
-        [
-            array[i],
-            array[j]
-        ] =
-        [
-            array[j],
-            array[i]
-        ];
-
-    }
-
-
-    return array;
-
-}
-
-
-/* ============================================================
-   ARTICLE ID
-   ============================================================ */
-
-function generateArticleId(article) {
-
-    return (
-        String(
-            article.event_id ||
-            "article"
-        ) +
-        "-" +
-        Math.random()
-            .toString(36)
-            .substring(2, 8)
-    );
-
-}
-
-
-/* ============================================================
-   SET TEXT
-   ============================================================ */
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-
-    if (element) {
-
-        element.textContent =
-            value ?? "";
-
-    }
-
-}
-
-
-/* ============================================================
-   SET HTML
-   ============================================================ */
-
-function setHTML(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(
-            id
-        );
-
-
-    if (element) {
-
-        element.innerHTML =
-            value ?? "";
-
-    }
-
-}
-
-
-/* ============================================================
-   ESCAPE HTML
-   ============================================================ */
-
-function escapeHTML(value) {
-
-    return String(
-        value ?? ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
-}
-
-
-/* ============================================================
-   ESCAPE ATTRIBUTE
-   ============================================================ */
-
-function escapeAttribute(value) {
-
-    return escapeHTML(
-        value
-    );
-
-}
-
-
-/* ============================================================
-   ERROR
-   ============================================================ */
-
-function showError(message) {
-
-    const homepage =
-        document.getElementById(
-            "homepage"
-        );
-
-
-    if (!homepage) {
-        return;
-    }
-
-
-    homepage.innerHTML = `
-
-        <section style="
-            background:white;
-            border:1px solid #ccc;
-            padding:50px;
-            margin:40px 0;
-        ">
-
-            <h1 style="
-                font-family:Georgia,serif;
-            ">
-                NEWSROOM ERROR
-            </h1>
-
-            <p>
-                ${escapeHTML(
-                    message
-                )}
-            </p>
-
-            <p>
-                Open the browser console
-                for technical details.
-            </p>
-
-        </section>
-
-    `;
-
-}
+);
