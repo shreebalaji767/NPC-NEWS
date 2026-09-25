@@ -1,0 +1,170 @@
+{
+  "events": [
+
+    {
+      "universe": "SUPERHERO WORLD",
+
+      "location": "Central City",
+
+      "headline": "Two superpowered characters end a twelve-minute battle",
+
+      "characters": [
+        "Solar Knight",
+        "Void King"
+      ],
+
+      "winner": "Solar Knight",
+
+      "duration": "12 minutes",
+
+      "damage": {
+        "buildings": 18,
+        "roads": 4,
+        "vehicles": 73,
+        "businesses": 31,
+        "npcs": 12400
+      },
+
+      "consequences": [
+        "Three bus routes have been suspended while engineers inspect the roads.",
+        "Hundreds of office workers have been told to work from home.",
+        "The local supermarket says deliveries are running several hours late.",
+        "A nearby school has moved classes online while the area is inspected.",
+        "Several apartment residents have been temporarily relocated."
+      ],
+
+      "npc_reactions": [
+        "I was buying milk. Then the building across the street exploded.",
+        "They saved the city. I would like someone to save my apartment.",
+        "My office is still standing, but the road to it is not.",
+        "I don't know who won. I know my rent is still due.",
+        "I have absolutely no idea what happened. I just want the electricity back."
+      ]
+    },
+
+
+    {
+      "universe": "HUNTER WORLD",
+
+      "location": "Seoul District 8",
+
+      "headline": "Dungeon gate opens beside residential apartment complex",
+
+      "characters": [
+        "Hunter Zero",
+        "Gate Beast"
+      ],
+
+      "winner": "Hunter Zero",
+
+      "duration": "27 minutes",
+
+      "damage": {
+        "buildings": 6,
+        "roads": 3,
+        "vehicles": 41,
+        "businesses": 19,
+        "npcs": 6800
+      },
+
+      "consequences": [
+        "The subway station has been closed until the gate is declared safe.",
+        "Residents have been temporarily relocated to emergency accommodation.",
+        "Local restaurants report a sharp drop in customers.",
+        "Morning commuters are being redirected through a much longer route.",
+        "Several delivery companies have suspended service in the district."
+      ],
+
+      "npc_reactions": [
+        "I have lived here for ten years. We never had a dungeon before.",
+        "My landlord says the apartment is safe. The giant monster outside disagrees.",
+        "My train was cancelled because apparently there is a monster on platform three.",
+        "I only wanted to go to work.",
+        "Can hunters please stop opening portals next to my building?"
+      ]
+    },
+
+
+    {
+      "universe": "MURIM WORLD",
+
+      "location": "River Market",
+
+      "headline": "Two martial sect leaders settle a dispute outside a tea shop",
+
+      "characters": [
+        "Iron Palm Master",
+        "White Crane Elder"
+      ],
+
+      "winner": "White Crane Elder",
+
+      "duration": "9 minutes",
+
+      "damage": {
+        "buildings": 3,
+        "roads": 1,
+        "vehicles": 12,
+        "businesses": 7,
+        "npcs": 940
+      },
+
+      "consequences": [
+        "The market will remain closed while damaged stalls are rebuilt.",
+        "Merchants have moved their businesses to the east gate.",
+        "Tea supplies have been delayed because the main market road is blocked.",
+        "Local inn owners expect fewer visitors this week."
+      ],
+
+      "npc_reactions": [
+        "They called it a friendly exchange. My shop is now two pieces.",
+        "I sell tea. I did not ask to become part of a martial arts duel.",
+        "Both masters walked away. My table did not.",
+        "The market was open this morning. That was nice while it lasted.",
+        "Could the next legendary battle happen somewhere that isn't my shop?"
+      ]
+    },
+
+
+    {
+      "universe": "FANTASY KINGDOM",
+
+      "location": "Northgate",
+
+      "headline": "Dragon attack ends after royal champion drives it beyond the walls",
+
+      "characters": [
+        "Royal Champion",
+        "Ash Dragon"
+      ],
+
+      "winner": "Royal Champion",
+
+      "duration": "41 minutes",
+
+      "damage": {
+        "buildings": 29,
+        "roads": 5,
+        "vehicles": 0,
+        "businesses": 44,
+        "npcs": 15100
+      },
+
+      "consequences": [
+        "Northgate has closed its gates while the walls are repaired.",
+        "Farmers cannot bring produce into the city through the usual entrance.",
+        "The inn district is operating at reduced capacity.",
+        "Reconstruction crews have requested additional timber and stone."
+      ],
+
+      "npc_reactions": [
+        "The dragon is gone. Unfortunately, so is my roof.",
+        "The champion saved us. I am grateful. I would also like my shop back.",
+        "We have survived three dragon attacks this year. I think we need better insurance.",
+        "The castle still has a roof. Mine does not.",
+        "I don't care who won. Someone needs to repair my chimney."
+      ]
+    }
+
+  ]
+}
