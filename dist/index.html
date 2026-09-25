@@ -1,9 +1,6 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -11,99 +8,229 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>
-        NPC NEWS
-    </title>
+    <title>NPC NEWS — Fictional World News Network</title>
 
-    <link
-        rel="stylesheet"
-        href="styles.css"
-    >
-
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 
 <body>
 
+<header class="site-header">
 
-<header class="masthead">
-
-    <div class="network">
+    <div class="top-strip">
         FICTIONAL WORLD NEWS NETWORK
+        <span id="currentDate"></span>
     </div>
 
-    <h1>
-        NPC NEWS
-    </h1>
+    <div class="masthead">
 
-    <div class="tagline">
-        THE HEROES WIN. THE NPCs LIVE WITH IT.
+        <div>
+            <div class="logo">NPC NEWS</div>
+
+            <div class="tagline">
+                THE HEROES WIN. THE NPCs LIVE WITH IT.
+            </div>
+        </div>
+
+        <div class="network-info">
+            GLOBAL FICTIONAL NEWS
+            <br>
+            <strong>LIVE</strong>
+        </div>
+
     </div>
+
+    <nav class="main-nav">
+
+        <a href="#" data-category="ALL">HOME</a>
+        <a href="#" data-category="BREAKING">BREAKING</a>
+        <a href="#" data-category="BATTLE">BATTLES</a>
+        <a href="#" data-category="NPC LIFE">NPC LIFE</a>
+        <a href="#" data-category="DAMAGE">DAMAGE</a>
+        <a href="#" data-category="BUSINESS">BUSINESS</a>
+        <a href="#" data-category="TRANSPORT">TRANSPORT</a>
+        <a href="#" data-category="HOUSING">HOUSING</a>
+        <a href="#" data-category="HEALTH">HEALTH</a>
+        <a href="#" data-category="WORLDS">WORLDS</a>
+
+    </nav>
 
 </header>
 
 
-<nav>
+<div class="breaking-bar">
 
-    <a href="#">
-        HOME
-    </a>
-
-    <a href="#">
-        BATTLES
-    </a>
-
-    <a href="#">
-        NPC LIFE
-    </a>
-
-    <a href="#">
-        DAMAGE
-    </a>
-
-    <a href="#">
-        WORLDS
-    </a>
-
-</nav>
-
-
-<div class="breaking">
-
-    🔴 BREAKING
-
-    <span>
-        THE FICTIONAL WORLD HAS CHANGED AGAIN
+    <span class="breaking-label">
+        🔴 BREAKING
     </span>
+
+    <div id="breakingTicker">
+        Loading latest fictional-world developments...
+    </div>
 
 </div>
 
 
-<main id="news">
+<main class="container">
 
-    Loading today's unnecessary disaster...
+    <section class="world-status">
+
+        <div>
+            <small>NETWORK STATUS</small>
+            <strong>ALL WORLDS ONLINE</strong>
+        </div>
+
+        <div>
+            <small>LIVE EVENTS</small>
+            <strong id="eventCount">--</strong>
+        </div>
+
+        <div>
+            <small>ARTICLES</small>
+            <strong id="articleCount">--</strong>
+        </div>
+
+        <div>
+            <small>NPCs AFFECTED</small>
+            <strong id="npcCount">--</strong>
+        </div>
+
+    </section>
+
+
+    <section class="lead-section">
+
+        <article class="lead-story">
+
+            <div class="article-label" id="leadCategory">
+                BREAKING
+            </div>
+
+            <h1 id="leadHeadline">
+                Loading newsroom...
+            </h1>
+
+            <p class="lead-summary" id="leadSummary">
+                Please wait while NPC News gathers reports from fictional worlds.
+            </p>
+
+            <div class="article-meta" id="leadMeta"></div>
+
+            <div class="lead-body" id="leadBody"></div>
+
+            <button id="newLead" class="read-button">
+                LOAD ANOTHER STORY
+            </button>
+
+        </article>
+
+
+        <aside class="latest-column">
+
+            <div class="section-title">
+                LATEST NEWS
+            </div>
+
+            <div id="latestNews"></div>
+
+        </aside>
+
+    </section>
+
+
+    <section class="news-grid-section">
+
+        <div class="section-heading">
+
+            <h2>
+                THE WORLD IS STILL DEALING WITH IT
+            </h2>
+
+            <span>
+                LATEST REPORTS
+            </span>
+
+        </div>
+
+        <div id="newsGrid" class="news-grid"></div>
+
+    </section>
+
+
+    <section class="three-column">
+
+        <div>
+
+            <div class="section-title">
+                NPC LIFE
+            </div>
+
+            <div id="npcNews"></div>
+
+        </div>
+
+
+        <div>
+
+            <div class="section-title">
+                BUSINESS & ECONOMY
+            </div>
+
+            <div id="businessNews"></div>
+
+        </div>
+
+
+        <div>
+
+            <div class="section-title">
+                TRANSPORT & INFRASTRUCTURE
+            </div>
+
+            <div id="transportNews"></div>
+
+        </div>
+
+    </section>
+
+
+    <section class="worlds-section">
+
+        <div class="section-heading">
+
+            <h2>
+                NEWS FROM ALL WORLDS
+            </h2>
+
+        </div>
+
+        <div id="worldNews" class="world-grid"></div>
+
+    </section>
 
 </main>
 
 
 <footer>
 
-    <strong>
+    <div class="footer-logo">
         NPC NEWS
-    </strong>
+    </div>
 
-    <br>
+    <p>
+        Heroes save worlds. NPCs pay for repairs.
+    </p>
 
-    Heroes save worlds.
-
-    NPCs pay for repairs.
+    <p class="footer-small">
+        NPC News is a fictional/satirical fan-style news network.
+        All characters and fictional universes belong to their respective
+        rights holders.
+    </p>
 
 </footer>
 
 
 <script src="app.js"></script>
 
-
 </body>
-
 </html>
