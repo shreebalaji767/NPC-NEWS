@@ -2227,6 +2227,24 @@ def generate():
         "site": {
             "name": "NPC NEWS",
 
+            "creator": "BLSSNVJ21",
+
+            "publisher": "NPC NEWS",
+
+            "url": "https://npc-news.onrender.com/",
+
+            "language": "en-IN",
+
+            "keywords": [
+                "NPC NEWS",
+                "fictional news",
+                "fictional world news",
+                "satirical news",
+                "NPC life",
+                "battle news",
+                "BLSSNVJ21"
+            ],
+
             "tagline": (
                 "THE HEROES WIN. "
                 "THE NPCs LIVE WITH IT."
