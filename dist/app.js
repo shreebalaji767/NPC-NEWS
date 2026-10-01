@@ -129,6 +129,155 @@ function formatCurrency(value) {
     return "₹" + n.toLocaleString("en-IN");
 }
 
+/* =========================================================
+   DYNAMIC SEO / SOCIAL METADATA
+========================================================= */
+
+const SITE_URL = "https://npc-news.onrender.com/";
+const SITE_NAME = "NPC NEWS";
+const CREATOR_NAME = "BLSSNVJ21";
+
+function setMeta(name, content, attribute = "name") {
+    if (!content) return;
+
+    let tag = document.head.querySelector(
+        `meta[${attribute}="${CSS.escape(name)}"]`
+    );
+
+    if (!tag) {
+        tag = document.createElement("meta");
+        tag.setAttribute(attribute, name);
+        document.head.appendChild(tag);
+    }
+
+    tag.setAttribute("content", String(content));
+}
+
+function setCanonical(url) {
+    let link = document.head.querySelector('link[rel="canonical"]');
+
+    if (!link) {
+        link = document.createElement("link");
+        link.rel = "canonical";
+        document.head.appendChild(link);
+    }
+
+    link.href = url;
+}
+
+function setStructuredData(data) {
+    let script = document.getElementById("dynamicStructuredData");
+
+    if (!script) {
+        script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.id = "dynamicStructuredData";
+        document.head.appendChild(script);
+    }
+
+    script.textContent = JSON.stringify(data);
+}
+
+function updateSEO({
+    title = "NPC NEWS — Fictional World News Network",
+    description = "NPC NEWS is a fictional world news network covering battles, damage, business, transport, reconstruction and everyday NPC life.",
+    url = SITE_URL,
+    image = SITE_URL + "logo.svg",
+    type = "website",
+    article = null
+} = {}) {
+
+    document.title = title;
+
+    setMeta("description", description);
+    setMeta("author", CREATOR_NAME);
+    setMeta("creator", CREATOR_NAME);
+    setMeta("publisher", SITE_NAME);
+
+    setMeta("og:type", type, "property");
+    setMeta("og:site_name", SITE_NAME, "property");
+    setMeta("og:title", title, "property");
+    setMeta("og:description", description, "property");
+    setMeta("og:url", url, "property");
+    setMeta("og:image", image, "property");
+    setMeta("og:image:alt", "NPC NEWS logo", "property");
+
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+    setMeta("twitter:image", image);
+
+    setCanonical(url);
+
+    const baseData = {
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "@id": SITE_URL + "#organization",
+        "name": SITE_NAME,
+        "url": SITE_URL,
+        "description": "A fictional and satirical world news network.",
+        "logo": SITE_URL + "logo.svg",
+        "founder": {
+            "@type": "Person",
+            "name": CREATOR_NAME
+        }
+    };
+
+    if (article) {
+        setStructuredData({
+            "@context": "https://schema.org",
+            "@type": "NewsArticle",
+            "headline": article.headline || title,
+            "description": description,
+            "datePublished": article.published || undefined,
+            "dateModified": article.published || undefined,
+            "mainEntityOfPage": {
+                "@type": "WebPage",
+                "@id": url
+            },
+            "author": {
+                "@type": "Organization",
+                "name": SITE_NAME,
+                "url": SITE_URL
+            },
+            "publisher": baseData,
+            "isPartOf": {
+                "@type": "WebSite",
+                "name": SITE_NAME,
+                "url": SITE_URL
+            },
+            "articleSection": article.category || "News",
+            "keywords": [
+                "NPC NEWS",
+                "fictional news",
+                article.category,
+                article.world,
+                article.location,
+                CREATOR_NAME
+            ].filter(Boolean).join(", ")
+        });
+    } else {
+        setStructuredData({
+            "@context": "https://schema.org",
+            "@graph": [
+                baseData,
+                {
+                    "@type": "WebSite",
+                    "@id": SITE_URL + "#website",
+                    "name": SITE_NAME,
+                    "url": SITE_URL,
+                    "description": description,
+                    "publisher": {
+                        "@id": SITE_URL + "#organization"
+                    },
+                    "inLanguage": "en-IN"
+                }
+            ]
+        });
+    }
+}
+
+
 
 function shuffle(array) {
 
@@ -2649,6 +2798,8 @@ function showIncidentPage() {
 
 function renderHomepage() {
 
+    updateSEO();
+
     showHomepage();
 
     restoreHomepageSections();
@@ -3446,6 +3597,12 @@ function renderFilteredHomepage(
     articles
 ) {
 
+    updateSEO({
+        title: `${category} News | NPC NEWS`,
+        description: `Latest fictional ${category.toLowerCase()} reports from NPC NEWS.`,
+        url: SITE_URL + "#category/" + encodeURIComponent(category)
+    });
+
     showHomepage();
 
     restoreHomepageSections();
@@ -3635,6 +3792,12 @@ function renderFilteredHomepage(
 ========================================================= */
 
 function renderWorldsPage() {
+
+    updateSEO({
+        title: "All Fictional Worlds | NPC NEWS",
+        description: "Explore fictional worlds, incidents and NPC News reports.",
+        url: SITE_URL + "#category/WORLDS"
+    });
 
     showHomepage();
 
@@ -4011,6 +4174,35 @@ function renderIncident(
     event,
     article
 ) {
+
+    const seoHeadline =
+        article?.headline ||
+        event.title ||
+        "NPC NEWS Incident";
+
+    const seoDescription =
+        article?.summary ||
+        event.overview ||
+        `Fictional NPC NEWS coverage from ${event.location || "the affected area"}.`;
+
+    const incidentUrl =
+        SITE_URL +
+        "#incident/" +
+        encodeURIComponent(event.id) +
+        (article?.id
+            ? "/" + encodeURIComponent(article.id)
+            : "");
+
+    updateSEO({
+        title: seoHeadline + " | NPC NEWS",
+        description: seoDescription,
+        url: incidentUrl,
+        type: "article",
+        article: article || {
+            headline: seoHeadline,
+            summary: seoDescription
+        }
+    });
 
     const category =
         article?.category ||
