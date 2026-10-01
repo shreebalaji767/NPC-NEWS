@@ -5588,3 +5588,25 @@ document.addEventListener(
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init,{once:true}); else init();
 })();
+
+
+/* PWA INSTALL PROMPT */
+(function setupPWAInstall(){
+  let deferredPrompt=null;
+  function init(){
+    const button=document.getElementById("pwaInstallButton");
+    if(!button)return;
+    const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+    if(standalone)return;
+    window.addEventListener("beforeinstallprompt",event=>{
+      event.preventDefault(); deferredPrompt=event; button.hidden=false;
+    });
+    button.addEventListener("click",async()=>{
+      if(!deferredPrompt){return;}
+      deferredPrompt.prompt();
+      try{await deferredPrompt.userChoice;}finally{deferredPrompt=null;button.hidden=true;}
+    });
+    window.addEventListener("appinstalled",()=>{deferredPrompt=null;button.hidden=true;});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+})();
