@@ -5488,3 +5488,86 @@ document.addEventListener(
         loadNews();
     }
 );
+
+
+/* =========================================================
+   2026 UX UPGRADES
+========================================================= */
+
+(function setupModernUX() {
+    function init() {
+        const search = document.getElementById("newsSearch");
+        const installButton = document.getElementById("installApp");
+
+        if (search) {
+            search.addEventListener("input", function () {
+                const query = search.value.trim().toLowerCase();
+
+                document.querySelectorAll("[data-event-id]").forEach(function (node) {
+                    if (node.closest("button") || node.closest("a")) return;
+
+                    const text = (node.textContent || "").toLowerCase();
+                    const visible = !query || text.includes(query);
+                    node.style.display = visible ? "" : "none";
+                });
+
+                if (query) {
+                    document.querySelectorAll(".news-grid > *, .world-grid > *, #latestNews > *, #npcNews > *, #businessNews > *, #transportNews > *")
+                        .forEach(function (node) {
+                            const text = (node.textContent || "").toLowerCase();
+                            node.hidden = !text.includes(query);
+                        });
+                } else {
+                    document.querySelectorAll("[hidden]").forEach(function (node) {
+                        node.hidden = false;
+                    });
+                }
+            });
+
+            document.addEventListener("keydown", function (event) {
+                if (event.key === "/" && document.activeElement !== search) {
+                    event.preventDefault();
+                    search.focus();
+                }
+
+                if (event.key === "Escape" && document.activeElement === search) {
+                    search.value = "";
+                    search.dispatchEvent(new Event("input"));
+                    search.blur();
+                }
+            });
+        }
+
+        let deferredPrompt = null;
+
+        window.addEventListener("beforeinstallprompt", function (event) {
+            event.preventDefault();
+            deferredPrompt = event;
+
+            if (installButton) {
+                installButton.hidden = false;
+            }
+        });
+
+        if (installButton) {
+            installButton.addEventListener("click", async function () {
+                if (!deferredPrompt) return;
+
+                deferredPrompt.prompt();
+                await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                installButton.hidden = true;
+            });
+        }
+
+        window.addEventListener("appinstalled", function () {
+            if (installButton) installButton.hidden = true;
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init, { once: true });
+    } else {
+        init();
+    }
+})();
