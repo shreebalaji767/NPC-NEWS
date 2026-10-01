@@ -31,7 +31,8 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="canonical" href="https://npc-news.onrender.com/">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="logo.svg">
     <link rel="apple-touch-icon" href="favicon.svg">
     <script type="application/ld+json">
     {
@@ -65,7 +66,8 @@
         </div>
 
         <div class="masthead-tools">
-            <button id="pwaInstallButton" class="pwa-install" type="button" hidden>INSTALL APP</button>
+            <label class="site-search" for="newsSearch"><span class="sr-only">Search news</span><input id="newsSearch" type="search" placeholder="SEARCH NEWS" autocomplete="off"></label>
+            <button id="pwaInstallButton" class="pwa-install" type="button">INSTALL APP</button>
         </div>
 
         <div class="network-info">
@@ -104,7 +106,7 @@
 
 
 
-<div class="breaking-bar">
+<div class="breaking-bar" id="breaking">
 
     <span class="breaking-label">
         🔴 BREAKING
@@ -170,7 +172,7 @@
 
                 <div class="lead-body" id="leadBody"></div>
 
-                <button id="newLead" class="read-button">
+                <button id="newLead" class="read-button" type="button">
                     LOAD ANOTHER STORY
                 </button>
 
@@ -510,6 +512,7 @@
 
 
 <footer>
+    <div class="footer-brand"><img src="logo.svg" alt="" aria-hidden="true"> <strong>NPC NEWS</strong></div>
 
     <div class="footer-logo">
         NPC NEWS
