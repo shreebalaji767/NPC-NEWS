@@ -1,5 +1,5 @@
 {
-  "name": "NPC NEWS",
+  "name": "NPC NEWS — Fictional World News Network",
   "short_name": "NPC NEWS",
   "description": "Fictional world news for heroes, villains and the NPCs dealing with the aftermath.",
   "start_url": "./",
@@ -14,8 +14,8 @@
   ],
   "icons": [
     {
-      "src": "favicon.svg",
-      "sizes": "any",
+      "src": "logo.svg",
+      "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
