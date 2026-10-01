@@ -1589,3 +1589,12 @@ footer {
 
 /* Brand and accessibility polish */
 img{max-width:100%} :focus-visible{outline:3px solid #d60000;outline-offset:3px} .main-nav{scrollbar-width:none}.main-nav::-webkit-scrollbar{display:none}
+
+
+/* PWA INSTALL */
+.masthead-tools{display:flex;align-items:center;justify-content:flex-end;min-width:150px}
+.pwa-install{border:2px solid #111;background:#111;color:#fff;padding:11px 15px;font-size:11px;font-weight:900;letter-spacing:.8px;cursor:pointer}
+.pwa-install:hover,.pwa-install:focus-visible{background:#fff;color:#111;outline:2px solid #111;outline-offset:2px}
+.pwa-install[hidden]{display:none}
+@media(max-width:800px){.masthead{align-items:flex-start}.masthead-tools{min-width:auto}.pwa-install{padding:9px 11px;font-size:10px}}
+@media(max-width:600px){.masthead{flex-wrap:wrap}.masthead>div:first-child{width:100%}.masthead-tools{order:3}.network-info{margin-left:auto}}
