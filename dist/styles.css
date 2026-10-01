@@ -53,13 +53,11 @@ button {
     gap: 30px;
 }
 
-.logo {
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: clamp(48px, 8vw, 92px);
-    font-weight: 900;
-    line-height: .8;
-    letter-spacing: -5px;
-}
+.brand-logo{display:inline-flex;align-items:center;max-width:min(620px,72vw);line-height:0}
+.brand-logo img{display:block;width:min(420px,100%);height:auto}
+.brand-logo:focus-visible{outline:3px solid #d60000;outline-offset:5px}
+@media(max-width:650px){.brand-logo{max-width:88vw}.brand-logo img{width:340px}}
+@media(max-width:420px){.brand-logo img{width:280px}}
 
 .tagline {
     margin-top: 14px;
@@ -1587,3 +1585,7 @@ footer {
 .tool-button:hover,.tool-button:focus-visible{background:#111;color:#fff;border-color:#111;outline:none}
 @media(max-width:700px){.news-tools-inner{padding:7px 4%;overflow-x:auto}.tool-status{display:none}.tool-button{flex:0 0 auto}.edition-label{white-space:nowrap}}
 @media print{.news-tools{display:none}}
+
+
+/* Brand and accessibility polish */
+img{max-width:100%} :focus-visible{outline:3px solid #d60000;outline-offset:3px} .main-nav{scrollbar-width:none}.main-nav::-webkit-scrollbar{display:none}
