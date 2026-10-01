@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">\n    <meta name="description" content="NPC NEWS — a fictional world news network covering battles, damage, business, transport and everyday NPC life.">\n    <meta name="theme-color" content="#111111">\n    <meta name="color-scheme" content="light">\n\n    <link rel="canonical" href="./">\n    <link rel="manifest" href="manifest.webmanifest">\n    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 fill=%22%23111%22/%3E%3Ctext x=%2232%22 y=%2243%22 text-anchor=%22middle%22 font-size=%2232%22 font-family=%22Arial%22 font-weight=%22900%22 fill=%22white%22%3EN%3C/text%3E%3C/svg%3E">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="NPC NEWS — a fictional world news network covering battles, damage, business, transport and everyday NPC life.">
+    <meta name="theme-color" content="#111111">
+    <meta name="color-scheme" content="light">
 
     <title>NPC NEWS — Fictional World News Network</title>
 
@@ -28,7 +31,10 @@
             </div>
         </div>
 
-        <div class="masthead-tools">\n            <label class="site-search" for="newsSearch">\n                <span class="sr-only">Search fictional news</span>\n                <input id="newsSearch" type="search" placeholder="Search stories..." autocomplete="off">\n            </label>\n            <button id="installApp" class="install-button" type="button" hidden>INSTALL APP</button>\n        </div>\n\n        <div class="network-info">
+        <div class="masthead-tools">
+        </div>
+
+        <div class="network-info">
             GLOBAL FICTIONAL NEWS
             <br>
             <strong>● LIVE</strong>
@@ -459,7 +465,7 @@
 </main>
 
 
-<footer>\n    <div class="footer-links">\n        <a href="README.md">ABOUT</a>\n        <a href="manifest.webmanifest">PWA</a>\n        <a href="sitemap.xml">SITEMAP</a>\n    </div>
+<footer>
 
     <div class="footer-logo">
         NPC NEWS
@@ -476,9 +482,7 @@
     </p>
 
 </footer>
-
-
-<noscript><div class="noscript-warning">JavaScript is required to load the newsroom feed.</div></noscript>\n<script src="app.js" defer></script>\n<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}</script>
+<script src="app.js"></script>
 
 </body>
 </html>
