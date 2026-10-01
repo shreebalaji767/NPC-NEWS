@@ -8,5 +8,34 @@
   "background_color": "#f5f5f3",
   "theme_color": "#111111",
   "lang": "en",
-  "categories": ["news", "entertainment"]
+  "categories": [
+    "news",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "orientation": "any",
+  "id": "./",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "shortcuts": [
+    {
+      "name": "Latest News",
+      "short_name": "Latest",
+      "url": "./"
+    },
+    {
+      "name": "Breaking News",
+      "short_name": "Breaking",
+      "url": "./#breaking"
+    }
+  ]
 }
