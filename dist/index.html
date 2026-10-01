@@ -26,10 +26,11 @@
 
     <title>NPC NEWS — Fictional World News Network</title>
 
+    <link rel="preload" href="logo.svg" as="image" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <link rel="canonical" href="https://npc-news.onrender.com/">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" sizes="any">
     <link rel="apple-touch-icon" href="favicon.svg">
     <script type="application/ld+json">
     {
@@ -55,7 +56,7 @@
     <div class="masthead">
 
         <div>
-            <div class="logo">NPC NEWS</div>
+            <a class="brand-logo" href="./" aria-label="NPC NEWS home"><img src="logo.svg" width="420" height="96" alt="NPC NEWS — Fictional World News Network" decoding="async"></a>
 
             <div class="tagline">
                 THE HEROES WIN. THE NPCs LIVE WITH IT.
@@ -73,7 +74,7 @@
 
     </div>
 
-    <nav class="main-nav">
+    <nav class="main-nav" aria-label="Primary navigation">
 
         <a href="#" data-category="ALL">HOME</a>
         <a href="#" data-category="BREAKING">BREAKING</a>
@@ -114,7 +115,7 @@
 </div>
 
 
-<main class="container">
+<main class="container" id="main-content">
 
     <!-- =========================
          HOMEPAGE
