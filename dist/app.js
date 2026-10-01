@@ -5571,3 +5571,20 @@ document.addEventListener(
         init();
     }
 })();
+
+
+/* =========================================================
+   NEWSROOM POLISH
+========================================================= */
+(function newsroomPolish(){
+  function init(){
+    const refresh=document.getElementById("refreshNews");
+    const print=document.getElementById("printNews");
+    const top=document.getElementById("topNews");
+    if(refresh){refresh.addEventListener("click",()=>{refresh.textContent="↻ LOADING";refresh.disabled=true;location.reload();});}
+    if(print){print.addEventListener("click",()=>window.print());}
+    if(top){top.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));}
+    document.querySelectorAll(".main-nav a").forEach(a=>a.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"})));
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init,{once:true}); else init();
+})();
