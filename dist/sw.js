@@ -1,5 +1,5 @@
-const CACHE = "npc-news-v2026-10-01";
-const ASSETS = ["./","./index.html","./styles.css","./app.js","./manifest.webmanifest"];
+const CACHE = "npc-news-v2026-10-01-logo-seo";
+const ASSETS = ["./","./index.html","./styles.css","./app.js","./manifest.webmanifest","./logo.svg","./favicon.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
