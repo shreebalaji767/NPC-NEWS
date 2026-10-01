@@ -5491,89 +5491,6 @@ document.addEventListener(
 
 
 /* =========================================================
-   2026 UX UPGRADES
-========================================================= */
-
-(function setupModernUX() {
-    function init() {
-        const search = document.getElementById("newsSearch");
-        const installButton = document.getElementById("installApp");
-
-        if (search) {
-            search.addEventListener("input", function () {
-                const query = search.value.trim().toLowerCase();
-
-                document.querySelectorAll("[data-event-id]").forEach(function (node) {
-                    if (node.closest("button") || node.closest("a")) return;
-
-                    const text = (node.textContent || "").toLowerCase();
-                    const visible = !query || text.includes(query);
-                    node.style.display = visible ? "" : "none";
-                });
-
-                if (query) {
-                    document.querySelectorAll(".news-grid > *, .world-grid > *, #latestNews > *, #npcNews > *, #businessNews > *, #transportNews > *")
-                        .forEach(function (node) {
-                            const text = (node.textContent || "").toLowerCase();
-                            node.hidden = !text.includes(query);
-                        });
-                } else {
-                    document.querySelectorAll("[hidden]").forEach(function (node) {
-                        node.hidden = false;
-                    });
-                }
-            });
-
-            document.addEventListener("keydown", function (event) {
-                if (event.key === "/" && document.activeElement !== search) {
-                    event.preventDefault();
-                    search.focus();
-                }
-
-                if (event.key === "Escape" && document.activeElement === search) {
-                    search.value = "";
-                    search.dispatchEvent(new Event("input"));
-                    search.blur();
-                }
-            });
-        }
-
-        let deferredPrompt = null;
-
-        window.addEventListener("beforeinstallprompt", function (event) {
-            event.preventDefault();
-            deferredPrompt = event;
-
-            if (installButton) {
-                installButton.hidden = false;
-            }
-        });
-
-        if (installButton) {
-            installButton.addEventListener("click", async function () {
-                if (!deferredPrompt) return;
-
-                deferredPrompt.prompt();
-                await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                installButton.hidden = true;
-            });
-        }
-
-        window.addEventListener("appinstalled", function () {
-            if (installButton) installButton.hidden = true;
-        });
-    }
-
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", init, { once: true });
-    } else {
-        init();
-    }
-})();
-
-
-/* =========================================================
    NEWSROOM POLISH
 ========================================================= */
 (function newsroomPolish(){
@@ -5607,6 +5524,55 @@ document.addEventListener(
       try{await deferredPrompt.userChoice;}finally{deferredPrompt=null;button.hidden=true;}
     });
     window.addEventListener("appinstalled",()=>{deferredPrompt=null;button.hidden=true;});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
+})();
+
+/* =========================================================
+   COMPLETE NEWSROOM UX
+========================================================= */
+(function completeNewsroomUX(){
+  let deferredPrompt=null;
+  function textOf(node){return (node?.textContent||"").replace(/\s+/g," ").trim().toLowerCase();}
+  function filterNews(){
+    const input=document.getElementById("newsSearch"), q=(input?.value||"").trim().toLowerCase();
+    const groups=["#latestNews","#newsGrid","#npcNews","#businessNews","#transportNews","#worldNews"];
+    let visible=0;
+    groups.forEach(sel=>document.querySelectorAll(sel+" > *").forEach(node=>{
+      const show=!q||textOf(node).includes(q);
+      node.hidden=!show;if(show)visible++;
+    }));
+    const grid=document.getElementById("newsGrid");
+    if(grid){
+      let empty=grid.querySelector(".search-no-results");
+      if(q&&visible===0){if(!empty){empty=document.createElement("div");empty.className="search-no-results";grid.appendChild(empty)}empty.textContent="NO STORIES MATCH “"+q.toUpperCase()+"”."}
+      else if(empty)empty.remove();
+    }
+  }
+  function init(){
+    const search=document.getElementById("newsSearch"), install=document.getElementById("pwaInstallButton");
+    if(search){
+      search.addEventListener("input",filterNews);
+      document.addEventListener("keydown",e=>{
+        if(e.key==="/"&&document.activeElement!==search){e.preventDefault();search.focus();}
+        if(e.key==="Escape"&&document.activeElement===search){search.value="";filterNews();search.blur();}
+      });
+    }
+    if(install){
+      const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+      if(standalone){install.hidden=true;}
+      window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;install.hidden=false;});
+      install.addEventListener("click",async()=>{
+        if(deferredPrompt){
+          deferredPrompt.prompt();
+          try{await deferredPrompt.userChoice;}catch(_){}
+          deferredPrompt=null;install.hidden=true;
+        }else if(!standalone){
+          alert("To install NPC NEWS, use your browser menu and choose “Install NPC NEWS” or “Add to Home screen”.");
+        }
+      });
+      window.addEventListener("appinstalled",()=>{install.hidden=true;});
+    }
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});else init();
 })();
