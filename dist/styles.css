@@ -1573,3 +1573,17 @@ footer {
 @media (max-width:900px){.masthead{align-items:flex-start;flex-direction:column}.network-info{text-align:left}.masthead-tools{width:100%;justify-content:flex-start}.site-search{flex:1;min-width:0}.site-search input{width:100%;min-width:0}.main-nav a{padding:13px 15px}.container{width:min(100% - 24px,1400px)}}
 @media (max-width:640px){.top-strip{font-size:9px;padding:7px 12px}.masthead{padding:20px 12px}.logo{font-size:56px;letter-spacing:-3px}.tagline{font-size:10px;line-height:1.4}.breaking-bar{font-size:11px}.breaking-label{padding:12px}.main-nav a{font-size:10px;padding:12px}.world-status{grid-template-columns:repeat(2,minmax(0,1fr))}.lead-section,.three-column,.incident-main{grid-template-columns:1fr!important}.news-grid,.world-grid{grid-template-columns:1fr!important}.incident-sidebar{order:-1}.footer-links{flex-wrap:wrap}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* ============================================================
+   NEWSROOM TOOLBAR
+============================================================ */
+.news-tools{background:#fff;border-bottom:1px solid #d8d8d8}
+.news-tools-inner{max-width:1400px;margin:auto;padding:8px 5%;display:flex;align-items:center;gap:8px;min-height:40px}
+.edition-label{font-size:10px;font-weight:900;letter-spacing:1.4px;margin-right:auto}
+.tool-status{font-size:10px;font-weight:700;letter-spacing:.8px;padding-right:8px}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#d60000;margin-right:5px;vertical-align:1px;box-shadow:0 0 0 3px rgba(214,0,0,.08)}
+.tool-button{border:1px solid #bbb;background:#fff;color:#111;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.7px;cursor:pointer}
+.tool-button:hover,.tool-button:focus-visible{background:#111;color:#fff;border-color:#111;outline:none}
+@media(max-width:700px){.news-tools-inner{padding:7px 4%;overflow-x:auto}.tool-status{display:none}.tool-button{flex:0 0 auto}.edition-label{white-space:nowrap}}
+@media print{.news-tools{display:none}}
